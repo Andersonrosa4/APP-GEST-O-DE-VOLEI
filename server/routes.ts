@@ -4,7 +4,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { setupAuth, hashPassword } from "./auth";
 import type { User, Team, Match } from "@shared/schema";
-import { insertTournamentSchema, insertCategorySchema, insertAthleteSchema, insertTeamSchema, insertUserSchema } from "@shared/schema";
+import { insertTournamentSchema, insertCategorySchema, insertTeamSchema, insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 
 function requireAuth(req: any, res: any, next: any) {
@@ -148,40 +148,23 @@ export async function registerRoutes(
     res.json({ message: "Categoria removida" });
   });
 
-  // === ATHLETES ===
-  app.get("/api/tournaments/:id/athletes", async (req, res) => {
-    const athletes = await storage.getAthletes(Number(req.params.id));
-    res.json(athletes);
-  });
-
-  app.post("/api/athletes", requireAuth, async (req, res) => {
-    try {
-      const parsed = insertAthleteSchema.parse({
-        ...req.body,
-        createdBy: (req.user as User).id,
-      });
-      const athlete = await storage.createAthlete(parsed);
-      res.status(201).json(athlete);
-    } catch (e: any) {
-      if (e instanceof z.ZodError) return res.status(400).json({ message: "Dados inválidos", errors: e.errors });
-      res.status(400).json({ message: e.message });
-    }
-  });
-
-  app.delete("/api/athletes/:id", requireAuth, async (req, res) => {
-    await storage.deleteAthlete(Number(req.params.id));
-    res.json({ message: "Atleta removido" });
-  });
-
-  // === TEAMS ===
+  // === TEAMS (Duplas) ===
   app.get("/api/categories/:categoryId/teams", async (req, res) => {
     const teams = await storage.getTeams(Number(req.params.categoryId));
     res.json(teams);
   });
 
+  app.get("/api/tournaments/:id/teams", async (req, res) => {
+    const teams = await storage.getTeamsByTournament(Number(req.params.id));
+    res.json(teams);
+  });
+
   app.post("/api/teams", requireAuth, async (req, res) => {
     try {
-      const parsed = insertTeamSchema.parse(req.body);
+      const body = { ...req.body };
+      if (!body.player1Name) body.player1Name = body.name;
+      if (!body.player2Name) body.player2Name = "";
+      const parsed = insertTeamSchema.parse(body);
       const team = await storage.createTeam(parsed);
       res.status(201).json(team);
     } catch (e: any) {
@@ -195,13 +178,36 @@ export async function registerRoutes(
     res.json({ message: "Dupla removida" });
   });
 
-  // === MATCHES ===
-  app.get("/api/categories/:categoryId/matches", async (req, res) => {
-    const matchesList = await storage.getMatches(Number(req.params.categoryId));
-    res.json(matchesList);
+  // === GROUP DRAW (Sorteio de Chaves) ===
+  app.post("/api/categories/:categoryId/draw-groups", requireAuth, async (req, res) => {
+    const categoryId = Number(req.params.categoryId);
+    const { numGroups } = req.body;
+
+    if (!numGroups || numGroups < 1) return res.status(400).json({ message: "Número de chaves inválido" });
+
+    const teamsList = await storage.getTeams(categoryId);
+    if (teamsList.length < 2) return res.status(400).json({ message: "Mínimo de 2 duplas necessário" });
+    if (numGroups > teamsList.length) return res.status(400).json({ message: "Número de chaves maior que o número de duplas" });
+
+    const shuffled = [...teamsList].sort(() => Math.random() - 0.5);
+    const groupLetters = Array.from({ length: numGroups }, (_, i) => String.fromCharCode(65 + i));
+
+    for (let i = 0; i < shuffled.length; i++) {
+      const groupIndex = i % numGroups;
+      const groupName = `Chave ${groupLetters[groupIndex]}`;
+      await storage.updateTeam(shuffled[i].id, {
+        groupName,
+        groupWins: 0, groupLosses: 0,
+        setsWon: 0, setsLost: 0,
+        pointsScored: 0, pointsConceded: 0,
+      });
+    }
+
+    const updatedTeams = await storage.getTeams(categoryId);
+    res.json(updatedTeams);
   });
 
-  // Generate group stage matches (round robin)
+  // === GENERATE MATCHES BY ROUNDS ===
   app.post("/api/categories/:categoryId/generate-matches", requireAuth, async (req, res) => {
     const categoryId = Number(req.params.categoryId);
     await storage.deleteMatchesByCategory(categoryId);
@@ -209,36 +215,41 @@ export async function registerRoutes(
     const teamsList = await storage.getTeams(categoryId);
     if (teamsList.length < 2) return res.status(400).json({ message: "Mínimo de 2 duplas necessário" });
 
-    // Assign groups
-    const numGroups = Math.max(1, Math.ceil(teamsList.length / 4));
-    const shuffled = [...teamsList].sort(() => Math.random() - 0.5);
     const groups: Record<string, Team[]> = {};
-
-    for (let i = 0; i < shuffled.length; i++) {
-      const groupIndex = i % numGroups;
-      const groupName = `Grupo ${String.fromCharCode(65 + groupIndex)}`;
-      if (!groups[groupName]) groups[groupName] = [];
-      groups[groupName].push(shuffled[i]);
-      await storage.updateTeam(shuffled[i].id, { groupName, groupWins: 0, groupLosses: 0, setsWon: 0, setsLost: 0, pointsScored: 0, pointsConceded: 0 });
+    for (const team of teamsList) {
+      const g = team.groupName || "Chave A";
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(team);
     }
 
+    const groupNames = Object.keys(groups).sort();
+
+    const groupRounds: Record<string, { team1: Team; team2: Team }[][]> = {};
+    for (const gName of groupNames) {
+      groupRounds[gName] = generateRoundRobin(groups[gName]);
+    }
+
+    const maxRounds = Math.max(...Object.values(groupRounds).map(r => r.length));
+
     const createdMatches: Match[] = [];
-    let courtNum = 1;
     const category = await storage.getCategory(categoryId);
     const tournament = category ? await storage.getTournament(category.tournamentId) : null;
     const totalCourts = tournament?.courts || 1;
+    let courtNum = 1;
 
-    for (const [groupName, groupTeams] of Object.entries(groups)) {
-      for (let i = 0; i < groupTeams.length; i++) {
-        for (let j = i + 1; j < groupTeams.length; j++) {
+    for (let roundIdx = 0; roundIdx < maxRounds; roundIdx++) {
+      for (const gName of groupNames) {
+        const roundGames = groupRounds[gName][roundIdx] || [];
+        for (const game of roundGames) {
           const match = await storage.createMatch({
             categoryId,
-            team1Id: groupTeams[i].id,
-            team2Id: groupTeams[j].id,
+            team1Id: game.team1.id,
+            team2Id: game.team2.id,
             courtNumber: ((courtNum - 1) % totalCourts) + 1,
+            roundNumber: roundIdx + 1,
             status: "agendado",
             stage: "grupo",
-            groupName,
+            groupName: gName,
           });
           createdMatches.push(match);
           courtNum++;
@@ -249,113 +260,167 @@ export async function registerRoutes(
     res.status(201).json(createdMatches);
   });
 
-  // Generate bracket (knockout stage from group results)
+  // === GENERATE BRACKET (Knockout) ===
   app.post("/api/categories/:categoryId/generate-bracket", requireAuth, async (req, res) => {
     const categoryId = Number(req.params.categoryId);
     const teamsList = await storage.getTeams(categoryId);
 
-    // Gather group standings
     const groups: Record<string, Team[]> = {};
     for (const team of teamsList) {
-      const g = team.groupName || "Grupo A";
+      const g = team.groupName || "Chave A";
       if (!groups[g]) groups[g] = [];
       groups[g].push(team);
     }
 
-    // Sort each group by wins, then set diff, then points
-    const qualified: Team[] = [];
-    for (const [, groupTeams] of Object.entries(groups)) {
-      groupTeams.sort((a, b) => {
-        if ((b.groupWins || 0) !== (a.groupWins || 0)) return (b.groupWins || 0) - (a.groupWins || 0);
-        const aSetDiff = (a.setsWon || 0) - (a.setsLost || 0);
-        const bSetDiff = (b.setsWon || 0) - (b.setsLost || 0);
-        if (bSetDiff !== aSetDiff) return bSetDiff - aSetDiff;
-        return ((b.pointsScored || 0) - (b.pointsConceded || 0)) - ((a.pointsScored || 0) - (a.pointsConceded || 0));
-      });
-      qualified.push(...groupTeams.slice(0, 2));
+    const sortedGroups: Record<string, Team[]> = {};
+    for (const [gName, gTeams] of Object.entries(groups)) {
+      sortedGroups[gName] = sortTeamsByStandings(gTeams, await storage.getMatches(categoryId));
     }
 
-    // Determine bracket size
-    let bracketSize = 2;
-    while (bracketSize < qualified.length) bracketSize *= 2;
+    const groupNames = Object.keys(sortedGroups).sort();
+    const numGroups = groupNames.length;
+    let qualified: { team: Team; position: number; group: string }[] = [];
 
-    const stages: string[] = [];
-    if (bracketSize >= 8) stages.push("quartas");
-    if (bracketSize >= 4) stages.push("semifinal");
-    stages.push("final");
+    if (numGroups === 3) {
+      for (const gName of groupNames) {
+        const sorted = sortedGroups[gName];
+        if (sorted[0]) qualified.push({ team: sorted[0], position: 1, group: gName });
+      }
+      const seconds = groupNames
+        .map(gName => sortedGroups[gName][1])
+        .filter(Boolean)
+        .sort((a, b) => {
+          const aPointDiff = (a.pointsScored || 0) - (a.pointsConceded || 0);
+          const bPointDiff = (b.pointsScored || 0) - (b.pointsConceded || 0);
+          return bPointDiff - aPointDiff;
+        });
+      if (seconds[0]) {
+        const groupOfBestSecond = groupNames.find(gName => sortedGroups[gName][1]?.id === seconds[0].id) || groupNames[0];
+        qualified.push({ team: seconds[0], position: 2, group: groupOfBestSecond });
+      }
+    } else {
+      for (const gName of groupNames) {
+        const sorted = sortedGroups[gName];
+        if (sorted[0]) qualified.push({ team: sorted[0], position: 1, group: gName });
+        if (sorted[1]) qualified.push({ team: sorted[1], position: 2, group: gName });
+      }
+    }
+
+    if (qualified.length < 2) return res.status(400).json({ message: "Duplas insuficientes para fase eliminatória" });
+
+    const existingBracketMatches = (await storage.getMatches(categoryId)).filter(m => m.stage !== "grupo");
+    for (const m of existingBracketMatches) {
+      await storage.updateMatch(m.id, { team1Id: null, team2Id: null, winnerId: null, status: "agendado",
+        set1Team1: 0, set1Team2: 0, set2Team1: 0, set2Team2: 0, set3Team1: 0, set3Team2: 0 });
+    }
 
     const createdMatches: Match[] = [];
 
-    if (qualified.length >= 4) {
-      // Semifinals
-      const semis = [
-        { team1Id: qualified[0]?.id, team2Id: qualified[3]?.id },
-        { team1Id: qualified[1]?.id, team2Id: qualified[2]?.id },
-      ];
+    if (numGroups === 4) {
+      const pairings = generateOlympicCrossover(qualified, groupNames);
+      const isQuartas = qualified.length > 4;
 
-      for (const s of semis) {
-        const match = await storage.createMatch({
-          categoryId,
-          team1Id: s.team1Id || null,
-          team2Id: s.team2Id || null,
-          stage: "semifinal",
-          status: "agendado",
-          courtNumber: 1,
-        });
-        createdMatches.push(match);
+      if (qualified.length <= 4) {
+        for (const p of pairings.slice(0, 2)) {
+          const match = await storage.createMatch({
+            categoryId, team1Id: p.team1.id, team2Id: p.team2.id,
+            stage: "semifinal", status: "agendado", courtNumber: 1,
+          });
+          createdMatches.push(match);
+        }
+      } else {
+        for (const p of pairings) {
+          const match = await storage.createMatch({
+            categoryId, team1Id: p.team1.id, team2Id: p.team2.id,
+            stage: "quartas", status: "agendado", courtNumber: 1,
+          });
+          createdMatches.push(match);
+        }
       }
 
-      // Final placeholder
+      if (qualified.length > 4) {
+        for (let i = 0; i < 2; i++) {
+          const match = await storage.createMatch({
+            categoryId, team1Id: null, team2Id: null,
+            stage: "semifinal", status: "agendado", courtNumber: 1,
+          });
+          createdMatches.push(match);
+        }
+      }
+
       const finalMatch = await storage.createMatch({
-        categoryId,
-        team1Id: null,
-        team2Id: null,
-        stage: "final",
-        status: "agendado",
-        courtNumber: 1,
+        categoryId, team1Id: null, team2Id: null,
+        stage: "final", status: "agendado", courtNumber: 1,
       });
       createdMatches.push(finalMatch);
 
-      // Bronze match placeholder
       const bronzeMatch = await storage.createMatch({
-        categoryId,
-        team1Id: null,
-        team2Id: null,
-        stage: "terceiro",
-        status: "agendado",
-        courtNumber: 1,
+        categoryId, team1Id: null, team2Id: null,
+        stage: "terceiro", status: "agendado", courtNumber: 1,
       });
       createdMatches.push(bronzeMatch);
-    } else if (qualified.length >= 2) {
+    } else {
+      const pairings = generateSmartBracket(qualified);
+
+      if (pairings.length >= 4) {
+        for (const p of pairings) {
+          const match = await storage.createMatch({
+            categoryId, team1Id: p.team1.id, team2Id: p.team2.id,
+            stage: "quartas", status: "agendado", courtNumber: 1,
+          });
+          createdMatches.push(match);
+        }
+        for (let i = 0; i < 2; i++) {
+          const match = await storage.createMatch({
+            categoryId, team1Id: null, team2Id: null,
+            stage: "semifinal", status: "agendado", courtNumber: 1,
+          });
+          createdMatches.push(match);
+        }
+      } else {
+        for (const p of pairings) {
+          const match = await storage.createMatch({
+            categoryId, team1Id: p.team1.id, team2Id: p.team2.id,
+            stage: "semifinal", status: "agendado", courtNumber: 1,
+          });
+          createdMatches.push(match);
+        }
+      }
+
       const finalMatch = await storage.createMatch({
-        categoryId,
-        team1Id: qualified[0]?.id,
-        team2Id: qualified[1]?.id,
-        stage: "final",
-        status: "agendado",
-        courtNumber: 1,
+        categoryId, team1Id: null, team2Id: null,
+        stage: "final", status: "agendado", courtNumber: 1,
       });
       createdMatches.push(finalMatch);
+
+      const bronzeMatch = await storage.createMatch({
+        categoryId, team1Id: null, team2Id: null,
+        stage: "terceiro", status: "agendado", courtNumber: 1,
+      });
+      createdMatches.push(bronzeMatch);
     }
 
     res.status(201).json(createdMatches);
   });
 
-  // Update match score
+  // === UPDATE MATCH SCORE ===
   app.patch("/api/matches/:id", requireAuth, async (req, res) => {
     const id = Number(req.params.id);
     const updates = req.body;
     const match = await storage.updateMatch(id, updates);
 
-    // If match is finished, update team stats
     if (updates.status === "finalizado" && updates.winnerId) {
       const fullMatch = await storage.getMatch(id);
       if (fullMatch && fullMatch.stage === "grupo") {
         await recalculateGroupStats(fullMatch.categoryId);
+        await checkAutoAdvance(fullMatch.categoryId, broadcast);
       }
 
-      // If this is a semifinal that just finished, update the final/bronze
-      if (fullMatch && (fullMatch.stage === "semifinal")) {
+      if (fullMatch && fullMatch.stage === "quartas") {
+        await updateQuartasProgression(fullMatch);
+      }
+
+      if (fullMatch && fullMatch.stage === "semifinal") {
         await updateBracketProgression(fullMatch);
       }
     }
@@ -368,6 +433,7 @@ export async function registerRoutes(
   app.get("/api/categories/:categoryId/standings", async (req, res) => {
     const categoryId = Number(req.params.categoryId);
     const teamsList = await storage.getTeams(categoryId);
+    const allMatches = await storage.getMatches(categoryId);
 
     const groups: Record<string, Team[]> = {};
     for (const team of teamsList) {
@@ -376,18 +442,243 @@ export async function registerRoutes(
       groups[g].push(team);
     }
 
-    for (const groupTeams of Object.values(groups)) {
-      groupTeams.sort((a, b) => {
-        if ((b.groupWins || 0) !== (a.groupWins || 0)) return (b.groupWins || 0) - (a.groupWins || 0);
-        const aSetDiff = (a.setsWon || 0) - (a.setsLost || 0);
-        const bSetDiff = (b.setsWon || 0) - (b.setsLost || 0);
-        if (bSetDiff !== aSetDiff) return bSetDiff - aSetDiff;
-        return ((b.pointsScored || 0) - (b.pointsConceded || 0)) - ((a.pointsScored || 0) - (a.pointsConceded || 0));
-      });
+    for (const [, groupTeams] of Object.entries(groups)) {
+      const sorted = sortTeamsByStandings(groupTeams, allMatches);
+      groupTeams.length = 0;
+      groupTeams.push(...sorted);
     }
 
     res.json(groups);
   });
+
+  // === TOURNAMENT DATA FOR ATHLETE ===
+  app.get("/api/tournaments/:id/full-data", async (req, res) => {
+    const tournamentId = Number(req.params.id);
+    const tournament = await storage.getTournament(tournamentId);
+    if (!tournament) return res.status(404).json({ message: "Torneio não encontrado" });
+
+    const cats = await storage.getCategories(tournamentId);
+    const allTeams = await storage.getTeamsByTournament(tournamentId);
+    const allMatches: Match[] = [];
+    const allStandings: Record<number, Record<string, Team[]>> = {};
+
+    for (const cat of cats) {
+      const catMatches = await storage.getMatches(cat.id);
+      allMatches.push(...catMatches);
+
+      const groups: Record<string, Team[]> = {};
+      const catTeams = allTeams.filter(t => t.categoryId === cat.id);
+      for (const team of catTeams) {
+        const g = team.groupName || "Sem Grupo";
+        if (!groups[g]) groups[g] = [];
+        groups[g].push(team);
+      }
+      for (const groupTeams of Object.values(groups)) {
+        const sorted = sortTeamsByStandings(groupTeams, catMatches);
+        groupTeams.length = 0;
+        groupTeams.push(...sorted);
+      }
+      allStandings[cat.id] = groups;
+    }
+
+    res.json({ tournament, categories: cats, teams: allTeams, matches: allMatches, standings: allStandings });
+  });
+
+  // Helper: Generate round-robin schedule ensuring no back-to-back games
+  function generateRoundRobin(teamsList: Team[]): { team1: Team; team2: Team }[][] {
+    const teams = [...teamsList];
+    const n = teams.length;
+    if (n < 2) return [];
+
+    if (n % 2 !== 0) {
+      teams.push(null as any);
+    }
+
+    const numTeams = teams.length;
+    const rounds: { team1: Team; team2: Team }[][] = [];
+    const fixed = teams[0];
+    const rotating = teams.slice(1);
+
+    for (let r = 0; r < numTeams - 1; r++) {
+      const round: { team1: Team; team2: Team }[] = [];
+      const current = [fixed, ...rotating];
+
+      for (let i = 0; i < numTeams / 2; i++) {
+        const t1 = current[i];
+        const t2 = current[numTeams - 1 - i];
+        if (t1 && t2) {
+          round.push({ team1: t1, team2: t2 });
+        }
+      }
+
+      if (round.length > 0) rounds.push(round);
+      rotating.push(rotating.shift()!);
+    }
+
+    return reorderToAvoidConsecutive(rounds, teamsList);
+  }
+
+  function reorderToAvoidConsecutive(rounds: { team1: Team; team2: Team }[][], allTeams: Team[]): { team1: Team; team2: Team }[][] {
+    if (rounds.length <= 1) return rounds;
+
+    const result: { team1: Team; team2: Team }[][] = [rounds[0]];
+    const remaining = rounds.slice(1);
+
+    while (remaining.length > 0) {
+      const lastRound = result[result.length - 1];
+      const lastTeamIds = new Set<number>();
+      for (const game of lastRound) {
+        lastTeamIds.add(game.team1.id);
+        lastTeamIds.add(game.team2.id);
+      }
+
+      let bestIdx = 0;
+      let bestConflicts = Infinity;
+
+      for (let i = 0; i < remaining.length; i++) {
+        let conflicts = 0;
+        for (const game of remaining[i]) {
+          if (lastTeamIds.has(game.team1.id)) conflicts++;
+          if (lastTeamIds.has(game.team2.id)) conflicts++;
+        }
+        if (conflicts < bestConflicts) {
+          bestConflicts = conflicts;
+          bestIdx = i;
+        }
+      }
+
+      result.push(remaining.splice(bestIdx, 1)[0]);
+    }
+
+    return result;
+  }
+
+  // Sort teams by: 1. Wins, 2. Head-to-head (if 2 tied), 3. Point difference
+  function sortTeamsByStandings(teamsList: Team[], allMatches: Match[]): Team[] {
+    const groupMatches = allMatches.filter(m => m.stage === "grupo" && m.status === "finalizado");
+
+    const sorted = [...teamsList].sort((a, b) => {
+      const aWins = a.groupWins || 0;
+      const bWins = b.groupWins || 0;
+      if (bWins !== aWins) return bWins - aWins;
+
+      const tiedTeams = teamsList.filter(t => (t.groupWins || 0) === aWins);
+      if (tiedTeams.length === 2) {
+        const h2h = getHeadToHead(a.id, b.id, groupMatches);
+        if (h2h !== 0) return h2h;
+      }
+
+      const aPointDiff = (a.pointsScored || 0) - (a.pointsConceded || 0);
+      const bPointDiff = (b.pointsScored || 0) - (b.pointsConceded || 0);
+      return bPointDiff - aPointDiff;
+    });
+
+    return sorted;
+  }
+
+  function getHeadToHead(teamAId: number, teamBId: number, matches: Match[]): number {
+    for (const m of matches) {
+      if ((m.team1Id === teamAId && m.team2Id === teamBId) || (m.team1Id === teamBId && m.team2Id === teamAId)) {
+        if (m.winnerId === teamAId) return -1;
+        if (m.winnerId === teamBId) return 1;
+      }
+    }
+    return 0;
+  }
+
+  // Olympic crossover: A1vD2, D1vA2, C1vB2, B1vC2
+  function generateOlympicCrossover(
+    qualified: { team: Team; position: number; group: string }[],
+    groupNames: string[]
+  ): { team1: Team; team2: Team }[] {
+    const byGroup: Record<string, { first?: Team; second?: Team }> = {};
+    for (const gn of groupNames) byGroup[gn] = {};
+
+    for (const q of qualified) {
+      if (q.position === 1) byGroup[q.group].first = q.team;
+      else byGroup[q.group].second = q.team;
+    }
+
+    const A = groupNames[0], B = groupNames[1], C = groupNames[2], D = groupNames[3];
+    const pairings: { team1: Team; team2: Team }[] = [];
+
+    if (byGroup[A]?.first && byGroup[D]?.second)
+      pairings.push({ team1: byGroup[A].first, team2: byGroup[D].second });
+    if (byGroup[D]?.first && byGroup[A]?.second)
+      pairings.push({ team1: byGroup[D].first, team2: byGroup[A].second });
+    if (byGroup[C]?.first && byGroup[B]?.second)
+      pairings.push({ team1: byGroup[C].first, team2: byGroup[B].second });
+    if (byGroup[B]?.first && byGroup[C]?.second)
+      pairings.push({ team1: byGroup[B].first, team2: byGroup[C].second });
+
+    return pairings;
+  }
+
+  // Smart bracket: avoid same group in quarters/semis
+  function generateSmartBracket(
+    qualified: { team: Team; position: number; group: string }[]
+  ): { team1: Team; team2: Team }[] {
+    const firsts = qualified.filter(q => q.position === 1);
+    const seconds = qualified.filter(q => q.position === 2);
+
+    const shuffledFirsts = [...firsts].sort(() => Math.random() - 0.5);
+    const shuffledSeconds = [...seconds].sort(() => Math.random() - 0.5);
+
+    const pairings: { team1: Team; team2: Team }[] = [];
+    const usedSeconds = new Set<number>();
+
+    for (const first of shuffledFirsts) {
+      let paired = false;
+      for (const second of shuffledSeconds) {
+        if (!usedSeconds.has(second.team.id) && second.group !== first.group) {
+          pairings.push({ team1: first.team, team2: second.team });
+          usedSeconds.add(second.team.id);
+          paired = true;
+          break;
+        }
+      }
+      if (!paired) {
+        for (const second of shuffledSeconds) {
+          if (!usedSeconds.has(second.team.id)) {
+            pairings.push({ team1: first.team, team2: second.team });
+            usedSeconds.add(second.team.id);
+            break;
+          }
+        }
+      }
+    }
+
+    const remaining = shuffledSeconds.filter(s => !usedSeconds.has(s.team.id));
+    for (let i = 0; i < remaining.length - 1; i += 2) {
+      pairings.push({ team1: remaining[i].team, team2: remaining[i + 1].team });
+    }
+
+    return validateBracketNoSameGroupSemis(pairings, qualified) || pairings;
+  }
+
+  function validateBracketNoSameGroupSemis(
+    pairings: { team1: Team; team2: Team }[],
+    qualified: { team: Team; position: number; group: string }[]
+  ): { team1: Team; team2: Team }[] | null {
+    if (pairings.length < 4) return pairings;
+
+    const getGroup = (teamId: number) => qualified.find(q => q.team.id === teamId)?.group;
+
+    for (let i = 0; i < pairings.length - 1; i += 2) {
+      const g1a = getGroup(pairings[i].team1.id);
+      const g1b = getGroup(pairings[i].team2.id);
+      const g2a = getGroup(pairings[i + 1].team1.id);
+      const g2b = getGroup(pairings[i + 1].team2.id);
+
+      const semiGroups = [g1a, g1b, g2a, g2b];
+      const uniqueGroups = new Set(semiGroups.filter(Boolean));
+      if (uniqueGroups.size < semiGroups.filter(Boolean).length) {
+        return null;
+      }
+    }
+
+    return pairings;
+  }
 
   // Helper: Recalculate group stats from all group matches
   async function recalculateGroupStats(categoryId: number) {
@@ -444,6 +735,50 @@ export async function registerRoutes(
     }
   }
 
+  // Auto-advance: check if all group matches finished, then generate bracket
+  async function checkAutoAdvance(categoryId: number, broadcast: (msg: any) => void) {
+    const allMatches = await storage.getMatches(categoryId);
+    const groupMatches = allMatches.filter(m => m.stage === "grupo");
+    const bracketMatches = allMatches.filter(m => m.stage !== "grupo");
+
+    if (groupMatches.length === 0) return;
+    if (bracketMatches.length > 0) return;
+
+    const allGroupFinished = groupMatches.every(m => m.status === "finalizado");
+    if (!allGroupFinished) return;
+
+    broadcast({ type: "GROUP_PHASE_COMPLETE", payload: { categoryId } });
+  }
+
+  // Helper: Quartas progression
+  async function updateQuartasProgression(finishedMatch: Match) {
+    const allMatches = await storage.getMatches(finishedMatch.categoryId);
+    const quartas = allMatches.filter(m => m.stage === "quartas" && m.status === "finalizado");
+    const semis = allMatches.filter(m => m.stage === "semifinal");
+
+    if (quartas.length >= 2 && semis.length >= 1) {
+      const sortedQuartas = quartas.sort((a, b) => a.id - b.id);
+
+      if (sortedQuartas.length >= 2 && semis[0] && !semis[0].team1Id) {
+        await storage.updateMatch(semis[0].id, {
+          team1Id: sortedQuartas[0].winnerId,
+          team2Id: sortedQuartas[1].winnerId,
+        });
+      }
+    }
+
+    if (quartas.length >= 4 && semis.length >= 2) {
+      const sortedQuartas = quartas.sort((a, b) => a.id - b.id);
+
+      if (semis[1] && !semis[1].team1Id) {
+        await storage.updateMatch(semis[1].id, {
+          team1Id: sortedQuartas[2].winnerId,
+          team2Id: sortedQuartas[3].winnerId,
+        });
+      }
+    }
+  }
+
   // Helper: Progress bracket when semifinals finish
   async function updateBracketProgression(finishedMatch: Match) {
     const allMatches = await storage.getMatches(finishedMatch.categoryId);
@@ -478,50 +813,11 @@ async function seedDatabase() {
   const admin = await storage.getUserByUsername("admin");
   if (!admin) {
     const adminHash = await hashPassword("ADM007");
-    const adminUser = await storage.createUser({
+    await storage.createUser({
       username: "admin",
       password: adminHash,
       name: "Admin Master",
       role: "admin",
     });
-
-    const orgHash = await hashPassword("org123");
-    const org = await storage.createUser({
-      username: "organizador",
-      password: orgHash,
-      name: "Carlos Silva",
-      role: "organizer",
-    });
-
-    const t = await storage.createTournament({
-      name: "Copacabana Open 2025",
-      location: "Rio de Janeiro - Praia de Copacabana",
-      startDate: new Date(),
-      endDate: new Date(Date.now() + 86400000 * 3),
-      description: "O maior torneio de vôlei de praia do verão! Venha participar desta competição incrível na praia de Copacabana.",
-      organizerId: adminUser.id,
-      status: "aberto",
-      courts: 4,
-      setsPerMatch: 3,
-      pointsPerSet: 21,
-      pointsTiebreak: 15,
-    });
-
-    const catM = await storage.createCategory({ tournamentId: t.id, name: "Masculino Pro", gender: "masculino", maxTeams: 16 });
-    const catF = await storage.createCategory({ tournamentId: t.id, name: "Feminino Pro", gender: "feminino", maxTeams: 16 });
-
-    const a1 = await storage.createAthlete({ name: "Alison Cerutti", tournamentId: t.id, createdBy: adminUser.id });
-    const a2 = await storage.createAthlete({ name: "Bruno Schmidt", tournamentId: t.id, createdBy: adminUser.id });
-    const a3 = await storage.createAthlete({ name: "Anders Mol", tournamentId: t.id, createdBy: adminUser.id });
-    const a4 = await storage.createAthlete({ name: "Christian Sorum", tournamentId: t.id, createdBy: adminUser.id });
-    const a5 = await storage.createAthlete({ name: "Evandro Gonçalves", tournamentId: t.id, createdBy: adminUser.id });
-    const a6 = await storage.createAthlete({ name: "Arthur Lanci", tournamentId: t.id, createdBy: adminUser.id });
-    const a7 = await storage.createAthlete({ name: "George Wanderley", tournamentId: t.id, createdBy: adminUser.id });
-    const a8 = await storage.createAthlete({ name: "André Loyola", tournamentId: t.id, createdBy: adminUser.id });
-
-    await storage.createTeam({ categoryId: catM.id, name: "Alison/Bruno", player1Id: a1.id, player2Id: a2.id, player1Name: a1.name, player2Name: a2.name, seed: 1, groupName: "Grupo A" });
-    await storage.createTeam({ categoryId: catM.id, name: "Mol/Sorum", player1Id: a3.id, player2Id: a4.id, player1Name: a3.name, player2Name: a4.name, seed: 2, groupName: "Grupo B" });
-    await storage.createTeam({ categoryId: catM.id, name: "Evandro/Arthur", player1Id: a5.id, player2Id: a6.id, player1Name: a5.name, player2Name: a6.name, groupName: "Grupo A" });
-    await storage.createTeam({ categoryId: catM.id, name: "George/André", player1Id: a7.id, player2Id: a8.id, player1Name: a7.name, player2Name: a8.name, groupName: "Grupo B" });
   }
 }

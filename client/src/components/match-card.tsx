@@ -31,13 +31,16 @@ export function MatchCard({ match, team1, team2 }: MatchCardProps) {
 
   return (
     <div className={cn(
-      "relative rounded-md border bg-white p-4 shadow-sm transition-all",
+      "relative rounded-md border p-4 shadow-sm transition-all bg-card",
       isLive && "ring-2 ring-red-400 border-red-200"
     )} data-testid={`card-match-${match.id}`}>
       <div className="flex justify-between items-center mb-3">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
-          <span className="bg-slate-100 px-2 py-0.5 rounded-md">Quadra {match.courtNumber}</span>
-          <span>{stageLabels[match.stage] || match.stage}</span>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium flex-wrap">
+          <span className="bg-muted px-2 py-0.5 rounded-md">Quadra {match.courtNumber}</span>
+          {match.stage === "grupo" && match.roundNumber && (
+            <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-md">R{match.roundNumber}</span>
+          )}
+          {match.stage !== "grupo" && <span>{stageLabels[match.stage] || match.stage}</span>}
           {match.groupName && <span className="text-primary font-semibold">{match.groupName}</span>}
         </div>
         {isLive && (
@@ -62,7 +65,7 @@ export function MatchCard({ match, team1, team2 }: MatchCardProps) {
           showScores={!isScheduled}
           hasSet3={(match.set3Team1 || 0) > 0 || (match.set3Team2 || 0) > 0}
         />
-        <div className="h-px bg-slate-100" />
+        <div className="h-px bg-border" />
         <TeamScoreRow
           teamName={team2?.name || "A definir"}
           sets={[match.set1Team2 || 0, match.set2Team2 || 0, match.set3Team2 || 0]}
@@ -88,7 +91,7 @@ function TeamScoreRow({ teamName, sets, isWinner, showScores, hasSet3 }: {
         {isWinner && <Trophy className="w-4 h-4 text-amber-500 flex-shrink-0" />}
         <span className={cn(
           "font-semibold truncate",
-          isWinner ? "text-slate-900" : "text-slate-500"
+          isWinner ? "text-foreground" : "text-muted-foreground"
         )}>
           {teamName}
         </span>
@@ -107,7 +110,7 @@ function TeamScoreRow({ teamName, sets, isWinner, showScores, hasSet3 }: {
 function ScoreBox({ score }: { score: number }) {
   return (
     <div className={cn(
-      "w-7 h-7 flex items-center justify-center rounded-md bg-slate-50 text-slate-600 text-xs font-bold",
+      "w-7 h-7 flex items-center justify-center rounded-md bg-muted text-muted-foreground text-xs font-bold",
       score >= 21 && "bg-primary/10 text-primary"
     )}>
       {score}

@@ -84,29 +84,14 @@ export function useCreateCategory() {
   });
 }
 
-export function useAthletes(tournamentId: number) {
+export function useTournamentFullData(tournamentId: number) {
   return useQuery({
-    queryKey: ["/api/tournaments", tournamentId, "athletes"],
+    queryKey: ["/api/tournaments", tournamentId, "full-data"],
     queryFn: async () => {
-      const res = await fetch(`/api/tournaments/${tournamentId}/athletes`);
-      if (!res.ok) throw new Error("Falha ao buscar atletas");
+      const res = await fetch(`/api/tournaments/${tournamentId}/full-data`);
+      if (!res.ok) throw new Error("Falha ao buscar dados do torneio");
       return await res.json();
     },
     enabled: !!tournamentId,
-  });
-}
-
-export function useCreateAthlete() {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-  return useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/athletes", data);
-      return await res.json();
-    },
-    onSuccess: (data: any) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/tournaments", data.tournamentId, "athletes"] });
-      toast({ title: "Atleta cadastrado", description: `${data.name} adicionado.` });
-    },
   });
 }

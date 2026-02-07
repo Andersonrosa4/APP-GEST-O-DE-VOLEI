@@ -39,6 +39,8 @@ export interface IStorage {
   deleteAthlete(id: number): Promise<void>;
 
   getTeams(categoryId: number): Promise<Team[]>;
+  getTeamsByTournament(tournamentId: number): Promise<Team[]>;
+  getTeam(id: number): Promise<Team | undefined>;
   createTeam(t: InsertTeam): Promise<Team>;
   deleteTeam(id: number): Promise<void>;
   updateTeam(id: number, updates: Partial<Team>): Promise<Team>;
@@ -134,6 +136,13 @@ export class DatabaseStorage implements IStorage {
   async getTeams(categoryId: number) {
     return db.select().from(teams).where(eq(teams.categoryId, categoryId));
   }
+  async getTeamsByTournament(tournamentId: number) {
+    return db.select().from(teams).where(eq(teams.tournamentId, tournamentId));
+  }
+  async getTeam(id: number) {
+    const [t] = await db.select().from(teams).where(eq(teams.id, id));
+    return t;
+  }
   async createTeam(t: InsertTeam) {
     const [team] = await db.insert(teams).values(t).returning();
     return team;
@@ -147,7 +156,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMatches(categoryId: number) {
-    return db.select().from(matches).where(eq(matches.categoryId, categoryId)).orderBy(asc(matches.scheduledTime));
+    return db.select().from(matches).where(eq(matches.categoryId, categoryId)).orderBy(asc(matches.roundNumber), asc(matches.id));
   }
   async getMatch(id: number) {
     const [m] = await db.select().from(matches).where(eq(matches.id, id));

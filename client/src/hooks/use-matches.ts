@@ -31,6 +31,21 @@ export function useCreateTeam() {
   });
 }
 
+export function useDeleteTeam() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({ id, categoryId }: { id: number; categoryId: number }) => {
+      await apiRequest("DELETE", `/api/teams/${id}`);
+      return categoryId;
+    },
+    onSuccess: (categoryId: number) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories", categoryId, "teams"] });
+      toast({ title: "Removida", description: "Dupla removida." });
+    },
+  });
+}
+
 export function useMatches(categoryId: number) {
   return useQuery({
     queryKey: ["/api/categories", categoryId, "matches"],
@@ -40,6 +55,26 @@ export function useMatches(categoryId: number) {
       return await res.json();
     },
     enabled: !!categoryId,
+  });
+}
+
+export function useDrawGroups() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({ categoryId, numGroups }: { categoryId: number; numGroups: number }) => {
+      const res = await apiRequest("POST", `/api/categories/${categoryId}/draw-groups`, { numGroups });
+      return await res.json();
+    },
+    onSuccess: (teams: any[]) => {
+      if (teams.length > 0) {
+        queryClient.invalidateQueries({ queryKey: ["/api/categories", teams[0].categoryId, "teams"] });
+        toast({ title: "Sorteio realizado", description: "Chaves definidas com sucesso!" });
+      }
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    },
   });
 }
 
@@ -55,7 +90,7 @@ export function useGenerateMatches() {
       if (matches.length > 0) {
         queryClient.invalidateQueries({ queryKey: ["/api/categories", matches[0].categoryId, "matches"] });
         queryClient.invalidateQueries({ queryKey: ["/api/categories", matches[0].categoryId, "teams"] });
-        toast({ title: "Jogos gerados", description: `${matches.length} jogos criados.` });
+        toast({ title: "Jogos gerados", description: `${matches.length} jogos criados por rodada.` });
       }
     },
     onError: (err: any) => {
@@ -75,8 +110,11 @@ export function useGenerateBracket() {
     onSuccess: (matches: any[]) => {
       if (matches.length > 0) {
         queryClient.invalidateQueries({ queryKey: ["/api/categories", matches[0].categoryId, "matches"] });
-        toast({ title: "Chave gerada", description: `Fase eliminatória criada.` });
+        toast({ title: "Chave gerada", description: "Fase eliminatória criada." });
       }
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });
 }
@@ -91,6 +129,7 @@ export function useUpdateMatch() {
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/categories", data.categoryId, "matches"] });
       queryClient.invalidateQueries({ queryKey: ["/api/categories", data.categoryId, "teams"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories", data.categoryId, "standings"] });
     },
   });
 }
@@ -128,6 +167,12 @@ export function useLiveMatchUpdates(categoryId?: number) {
             queryClient.invalidateQueries({ queryKey: ["/api/categories", match.categoryId, "teams"] });
             queryClient.invalidateQueries({ queryKey: ["/api/categories", match.categoryId, "standings"] });
           }
+        }
+        if (message.type === "GROUP_PHASE_COMPLETE") {
+          const { categoryId: catId } = message.payload;
+          queryClient.invalidateQueries({ queryKey: ["/api/categories", catId, "matches"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/categories", catId, "teams"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/categories", catId, "standings"] });
         }
       } catch {}
     };

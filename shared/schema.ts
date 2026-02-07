@@ -68,9 +68,10 @@ export const insertAthleteSchema = createInsertSchema(athletes).omit({ id: true,
 export const teams = pgTable("teams", {
   id: serial("id").primaryKey(),
   categoryId: integer("category_id").notNull(),
+  tournamentId: integer("tournament_id"),
   name: text("name").notNull(),
-  player1Id: integer("player1_id").notNull(),
-  player2Id: integer("player2_id").notNull(),
+  player1Id: integer("player1_id"),
+  player2Id: integer("player2_id"),
   player1Name: text("player1_name").notNull(),
   player2Name: text("player2_name").notNull(),
   seed: integer("seed"),
@@ -95,6 +96,7 @@ export const matches = pgTable("matches", {
   team2Id: integer("team2_id"),
   courtNumber: integer("court_number").default(1),
   scheduledTime: timestamp("scheduled_time"),
+  roundNumber: integer("round_number"),
   set1Team1: integer("set1_team1").default(0),
   set1Team2: integer("set1_team2").default(0),
   set2Team1: integer("set2_team1").default(0),
@@ -109,7 +111,6 @@ export const matches = pgTable("matches", {
 
 export const insertMatchSchema = createInsertSchema(matches).omit({ id: true });
 
-// Relations
 export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
   organizer: one(users, { fields: [tournaments.organizerId], references: [users.id] }),
   categories: many(categories),
@@ -123,8 +124,6 @@ export const categoriesRelations = relations(categories, ({ one, many }) => ({
 
 export const teamsRelations = relations(teams, ({ one }) => ({
   category: one(categories, { fields: [teams.categoryId], references: [categories.id] }),
-  player1: one(athletes, { fields: [teams.player1Id], references: [athletes.id], relationName: "player1" }),
-  player2: one(athletes, { fields: [teams.player2Id], references: [athletes.id], relationName: "player2" }),
 }));
 
 export const matchesRelations = relations(matches, ({ one }) => ({
@@ -134,7 +133,6 @@ export const matchesRelations = relations(matches, ({ one }) => ({
   winner: one(teams, { fields: [matches.winnerId], references: [teams.id], relationName: "matchWinner" }),
 }));
 
-// Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Tournament = typeof tournaments.$inferSelect;

@@ -3,16 +3,16 @@ import { Link, Route, Switch, useRoute, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { LayoutShell } from "@/components/layout-shell";
 import {
-  Loader2, Plus, Trash2, Calendar, MapPin, Trophy, Users, UserPlus, Swords, BarChart3, KeyRound, ArrowLeft
+  Loader2, Plus, Trash2, Calendar, MapPin, Trophy, UserPlus, Swords, BarChart3, KeyRound, ArrowLeft, Shuffle, Grid3X3
 } from "lucide-react";
-import { useTournaments, useCreateTournament, useDeleteTournament, useCategories, useCreateCategory, useAthletes, useCreateAthlete } from "@/hooks/use-tournaments";
-import { useTeams, useCreateTeam, useMatches, useGenerateMatches, useGenerateBracket, useUpdateMatch, useStandings, useLiveMatchUpdates } from "@/hooks/use-matches";
+import { useTournaments, useCreateTournament, useDeleteTournament, useCategories, useCreateCategory } from "@/hooks/use-tournaments";
+import { useTeams, useCreateTeam, useDeleteTeam, useMatches, useDrawGroups, useGenerateMatches, useGenerateBracket, useUpdateMatch, useStandings, useLiveMatchUpdates } from "@/hooks/use-matches";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { useState, useEffect, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -65,7 +65,7 @@ function AdminDashboard() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Painel Administrativo</h1>
+          <h1 className="text-3xl font-bold" data-testid="text-admin-title">Painel Administrativo</h1>
           <p className="text-muted-foreground">Gerencie seus torneios e campeonatos.</p>
         </div>
         <div className="flex gap-2">
@@ -208,11 +208,6 @@ function AdminOrganizers() {
 
   const { data: orgList, isLoading: orgLoading, refetch } = useQuery({
     queryKey: ["/api/users"],
-    queryFn: async () => {
-      const res = await fetch("/api/users", { credentials: "include" });
-      if (!res.ok) return [];
-      return await res.json();
-    },
   });
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -276,7 +271,7 @@ function AdminOrganizers() {
 
       {orgLoading ? <Loader2 className="animate-spin mx-auto" /> : (
         <div className="grid gap-3">
-          {orgList?.map((org: any) => (
+          {(orgList as any[])?.map((org: any) => (
             <Card key={org.id}>
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
@@ -289,7 +284,7 @@ function AdminOrganizers() {
               </CardContent>
             </Card>
           ))}
-          {orgList?.length === 0 && <p className="text-center text-muted-foreground py-8">Nenhum organizador cadastrado.</p>}
+          {(orgList as any[])?.length === 0 && <p className="text-center text-muted-foreground py-8">Nenhum organizador cadastrado.</p>}
         </div>
       )}
     </div>
@@ -302,11 +297,8 @@ function AdminTournamentDetail() {
   const { data: tournament, isLoading } = useTournaments();
   const currentTournament = tournament?.find((t: any) => t.id === tournamentId);
   const { data: categories, isLoading: loadingCats } = useCategories(tournamentId);
-  const { data: athletes, isLoading: loadingAthletes } = useAthletes(tournamentId);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [catOpen, setCatOpen] = useState(false);
-  const [athleteOpen, setAthleteOpen] = useState(false);
-  const [teamOpen, setTeamOpen] = useState(false);
   const [codeOpen, setCodeOpen] = useState(false);
 
   if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin" /></div>;
@@ -320,7 +312,7 @@ function AdminTournamentDetail() {
         <div className="flex items-center gap-3">
           <Link href="/admin"><Button variant="ghost" size="icon"><ArrowLeft className="w-4 h-4" /></Button></Link>
           <div>
-            <h1 className="text-2xl font-bold">{currentTournament.name}</h1>
+            <h1 className="text-2xl font-bold" data-testid="text-tournament-title">{currentTournament.name}</h1>
             <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
               <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{currentTournament.location}</span>
               <Badge variant="outline">{statusLabels[currentTournament.status]}</Badge>
@@ -332,8 +324,8 @@ function AdminTournamentDetail() {
       <Tabs defaultValue="categorias">
         <TabsList className="mb-6">
           <TabsTrigger value="categorias" data-testid="tab-categories">Categorias</TabsTrigger>
-          <TabsTrigger value="atletas" data-testid="tab-athletes">Atletas</TabsTrigger>
-          <TabsTrigger value="duplas" data-testid="tab-teams">Duplas & Jogos</TabsTrigger>
+          <TabsTrigger value="duplas" data-testid="tab-teams">Duplas & Chaves</TabsTrigger>
+          <TabsTrigger value="jogos" data-testid="tab-matches">Jogos & Placar</TabsTrigger>
           <TabsTrigger value="codigos" data-testid="tab-codes">Códigos de Acesso</TabsTrigger>
         </TabsList>
 
@@ -347,21 +339,19 @@ function AdminTournamentDetail() {
           />
         </TabsContent>
 
-        <TabsContent value="atletas">
-          <AthletesTab
+        <TabsContent value="duplas">
+          <TeamsAndGroupsTab
             tournamentId={tournamentId}
-            athletes={athletes}
-            loading={loadingAthletes}
-            open={athleteOpen}
-            setOpen={setAthleteOpen}
+            categories={categories}
+            selectedCategoryId={activeCategoryId}
+            onSelectCategory={setSelectedCategoryId}
           />
         </TabsContent>
 
-        <TabsContent value="duplas">
-          <TeamsAndMatchesTab
+        <TabsContent value="jogos">
+          <MatchesTab
             tournamentId={tournamentId}
             categories={categories}
-            athletes={athletes}
             selectedCategoryId={activeCategoryId}
             onSelectCategory={setSelectedCategoryId}
           />
@@ -370,7 +360,6 @@ function AdminTournamentDetail() {
         <TabsContent value="codigos">
           <AthleteCodesTab
             tournamentId={tournamentId}
-            athletes={athletes}
             open={codeOpen}
             setOpen={setCodeOpen}
           />
@@ -458,83 +447,7 @@ function CategoriesTab({ tournamentId, categories, loading, open, setOpen }: any
   );
 }
 
-function AthletesTab({ tournamentId, athletes, loading, open, setOpen }: any) {
-  const createAthlete = useCreateAthlete();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const { toast } = useToast();
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await createAthlete.mutateAsync({ name, email: email || null, phone: phone || null, tournamentId });
-    setOpen(false);
-    setName(""); setEmail(""); setPhone("");
-  };
-
-  const handleDelete = async (id: number) => {
-    if (!confirm("Remover este atleta?")) return;
-    await apiRequest("DELETE", `/api/athletes/${id}`);
-    queryClient.invalidateQueries({ queryKey: ["/api/tournaments", tournamentId, "athletes"] });
-    toast({ title: "Removido", description: "Atleta removido." });
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold">Atletas ({athletes?.length || 0})</h2>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" data-testid="button-add-athlete"><Plus className="w-4 h-4 mr-2" /> Novo Atleta</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Cadastrar Atleta</DialogTitle></DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Nome do Atleta</Label>
-                <Input value={name} onChange={e => setName(e.target.value)} placeholder="Nome completo" required data-testid="input-athlete-name" />
-              </div>
-              <div className="space-y-2">
-                <Label>Email (opcional)</Label>
-                <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="atleta@email.com" data-testid="input-athlete-email" />
-              </div>
-              <div className="space-y-2">
-                <Label>Telefone (opcional)</Label>
-                <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="(11) 99999-9999" data-testid="input-athlete-phone" />
-              </div>
-              <Button type="submit" className="w-full" disabled={createAthlete.isPending} data-testid="button-submit-athlete">
-                {createAthlete.isPending ? "Cadastrando..." : "Cadastrar Atleta"}
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {loading ? <Loader2 className="animate-spin mx-auto" /> : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {athletes?.map((a: any) => (
-            <Card key={a.id}>
-              <CardContent className="p-4 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold">{a.name}</div>
-                  {a.email && <div className="text-xs text-muted-foreground">{a.email}</div>}
-                </div>
-                <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(a.id)}>
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-          {athletes?.length === 0 && <p className="col-span-full text-center text-muted-foreground py-8">Nenhum atleta cadastrado.</p>}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function TeamsAndMatchesTab({ tournamentId, categories, athletes, selectedCategoryId, onSelectCategory }: any) {
-  const [teamOpen, setTeamOpen] = useState(false);
-
+function TeamsAndGroupsTab({ tournamentId, categories, selectedCategoryId, onSelectCategory }: any) {
   if (!categories || categories.length === 0) {
     return <p className="text-center text-muted-foreground py-8">Crie uma categoria primeiro.</p>;
   }
@@ -542,7 +455,7 @@ function TeamsAndMatchesTab({ tournamentId, categories, athletes, selectedCatego
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-lg font-bold">Duplas & Jogos</h2>
+        <h2 className="text-lg font-bold">Duplas & Chaves</h2>
         <div className="w-[200px]">
           <Select value={selectedCategoryId?.toString()} onValueChange={(v) => onSelectCategory(Number(v))}>
             <SelectTrigger data-testid="select-category"><SelectValue placeholder="Selecionar categoria" /></SelectTrigger>
@@ -556,119 +469,233 @@ function TeamsAndMatchesTab({ tournamentId, categories, athletes, selectedCatego
       </div>
 
       {selectedCategoryId && (
-        <CategoryTeamsMatches
-          categoryId={selectedCategoryId}
-          athletes={athletes}
-          teamOpen={teamOpen}
-          setTeamOpen={setTeamOpen}
-        />
+        <CategoryTeamsAndGroups categoryId={selectedCategoryId} tournamentId={tournamentId} />
       )}
     </div>
   );
 }
 
-function CategoryTeamsMatches({ categoryId, athletes, teamOpen, setTeamOpen }: any) {
+function CategoryTeamsAndGroups({ categoryId, tournamentId }: { categoryId: number; tournamentId: number }) {
+  const { data: teams, isLoading } = useTeams(categoryId);
+  const createTeam = useCreateTeam();
+  const deleteTeam = useDeleteTeam();
+  const drawGroups = useDrawGroups();
+  const [teamOpen, setTeamOpen] = useState(false);
+  const [drawOpen, setDrawOpen] = useState(false);
+  const [teamName, setTeamName] = useState("");
+  const [player1Name, setPlayer1Name] = useState("");
+  const [player2Name, setPlayer2Name] = useState("");
+  const [numGroups, setNumGroups] = useState("2");
+
+  const handleCreateTeam = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = teamName || `${player1Name}/${player2Name}`;
+    await createTeam.mutateAsync({
+      categoryId,
+      tournamentId,
+      name,
+      player1Name: player1Name || name,
+      player2Name: player2Name || "",
+    });
+    setTeamOpen(false);
+    setTeamName(""); setPlayer1Name(""); setPlayer2Name("");
+  };
+
+  const handleDraw = async () => {
+    await drawGroups.mutateAsync({ categoryId, numGroups: Number(numGroups) });
+    setDrawOpen(false);
+  };
+
+  const groupedTeams: Record<string, Team[]> = {};
+  const ungroupedTeams: Team[] = [];
+  if (teams) {
+    for (const t of teams as Team[]) {
+      if (t.groupName) {
+        if (!groupedTeams[t.groupName]) groupedTeams[t.groupName] = [];
+        groupedTeams[t.groupName].push(t);
+      } else {
+        ungroupedTeams.push(t);
+      }
+    }
+  }
+
+  const sortedGroupNames = Object.keys(groupedTeams).sort();
+  const hasGroups = sortedGroupNames.length > 0;
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-2 flex-wrap">
+          <CardTitle className="text-base">Duplas Cadastradas ({teams?.length || 0})</CardTitle>
+          <div className="flex gap-2">
+            <Dialog open={drawOpen} onOpenChange={setDrawOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" variant="outline" disabled={(teams?.length || 0) < 2} data-testid="button-draw-groups">
+                  <Shuffle className="w-4 h-4 mr-2" /> Sorteio de Chaves
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>Sorteio de Chaves</DialogTitle></DialogHeader>
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Distribua as {teams?.length || 0} duplas em chaves automaticamente.
+                  </p>
+                  <div className="space-y-2">
+                    <Label>Número de Chaves</Label>
+                    <Select value={numGroups} onValueChange={setNumGroups}>
+                      <SelectTrigger data-testid="select-num-groups"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: Math.min(8, Math.floor((teams?.length || 2) / 2)) }, (_, i) => i + 2).map(n => (
+                          <SelectItem key={n} value={n.toString()}>{n} Chaves</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button onClick={handleDraw} className="w-full" disabled={drawGroups.isPending} data-testid="button-confirm-draw">
+                    {drawGroups.isPending ? "Sorteando..." : "Realizar Sorteio"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Dialog open={teamOpen} onOpenChange={setTeamOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm" data-testid="button-add-team"><Plus className="w-4 h-4 mr-2" /> Nova Dupla</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>Cadastrar Dupla</DialogTitle></DialogHeader>
+                <form onSubmit={handleCreateTeam} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Nome da Dupla</Label>
+                    <Input value={teamName} onChange={e => setTeamName(e.target.value)} placeholder="Ex: João/Maria" data-testid="input-team-name" />
+                    <p className="text-xs text-muted-foreground">Deixe vazio para gerar automaticamente.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Jogador 1</Label>
+                    <Input value={player1Name} onChange={e => setPlayer1Name(e.target.value)} placeholder="Nome do jogador 1" required data-testid="input-player1-name" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Jogador 2</Label>
+                    <Input value={player2Name} onChange={e => setPlayer2Name(e.target.value)} placeholder="Nome do jogador 2" required data-testid="input-player2-name" />
+                  </div>
+                  <Button type="submit" className="w-full" disabled={createTeam.isPending} data-testid="button-submit-team">
+                    {createTeam.isPending ? "Cadastrando..." : "Cadastrar Dupla"}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? <Loader2 className="animate-spin mx-auto" /> : (
+            <>
+              {hasGroups && (
+                <div className="space-y-4">
+                  {sortedGroupNames.map(gName => (
+                    <div key={gName}>
+                      <h4 className="font-semibold text-sm text-primary mb-2 flex items-center gap-2">
+                        <Grid3X3 className="w-4 h-4" /> {gName}
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        {groupedTeams[gName].map((t: Team) => (
+                          <div key={t.id} className="flex items-center justify-between p-3 border rounded-md" data-testid={`team-card-${t.id}`}>
+                            <div>
+                              <span className="font-semibold">{t.name}</span>
+                              <div className="text-xs text-muted-foreground">{t.player1Name}{t.player2Name ? ` & ${t.player2Name}` : ""}</div>
+                            </div>
+                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteTeam.mutate({ id: t.id, categoryId })} data-testid={`button-delete-team-${t.id}`}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {ungroupedTeams.length > 0 && (
+                <div className={hasGroups ? "mt-4" : ""}>
+                  {hasGroups && <h4 className="font-semibold text-sm text-muted-foreground mb-2">Sem Chave</h4>}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {ungroupedTeams.map((t: Team) => (
+                      <div key={t.id} className="flex items-center justify-between p-3 border rounded-md" data-testid={`team-card-${t.id}`}>
+                        <div>
+                          <span className="font-semibold">{t.name}</span>
+                          <div className="text-xs text-muted-foreground">{t.player1Name}{t.player2Name ? ` & ${t.player2Name}` : ""}</div>
+                        </div>
+                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteTeam.mutate({ id: t.id, categoryId })} data-testid={`button-delete-team-${t.id}`}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(teams?.length || 0) === 0 && <p className="text-center text-muted-foreground py-4">Nenhuma dupla cadastrada.</p>}
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function MatchesTab({ tournamentId, categories, selectedCategoryId, onSelectCategory }: any) {
+  if (!categories || categories.length === 0) {
+    return <p className="text-center text-muted-foreground py-8">Crie uma categoria primeiro.</p>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h2 className="text-lg font-bold">Jogos & Placar</h2>
+        <div className="w-[200px]">
+          <Select value={selectedCategoryId?.toString()} onValueChange={(v) => onSelectCategory(Number(v))}>
+            <SelectTrigger data-testid="select-match-category"><SelectValue placeholder="Selecionar categoria" /></SelectTrigger>
+            <SelectContent>
+              {categories?.map((cat: any) => (
+                <SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {selectedCategoryId && (
+        <CategoryMatchesManager categoryId={selectedCategoryId} />
+      )}
+    </div>
+  );
+}
+
+function CategoryMatchesManager({ categoryId }: { categoryId: number }) {
   const { data: teams, isLoading: loadingTeams } = useTeams(categoryId);
   const { data: matches, isLoading: loadingMatches } = useMatches(categoryId);
   const { data: standings } = useStandings(categoryId);
   const generateMatches = useGenerateMatches();
   const generateBracket = useGenerateBracket();
   const updateMatch = useUpdateMatch();
-  const createTeam = useCreateTeam();
-  const { toast } = useToast();
   useLiveMatchUpdates(categoryId);
 
-  const [p1, setP1] = useState("");
-  const [p2, setP2] = useState("");
-  const [seed, setSeed] = useState("");
   const [scoreOpen, setScoreOpen] = useState(false);
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
-
-  const handleCreateTeam = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const player1 = athletes?.find((a: any) => a.id === Number(p1));
-    const player2 = athletes?.find((a: any) => a.id === Number(p2));
-    if (!player1 || !player2) return;
-    if (p1 === p2) { toast({ title: "Erro", description: "Selecione dois atletas diferentes", variant: "destructive" }); return; }
-
-    await createTeam.mutateAsync({
-      categoryId,
-      name: `${player1.name.split(" ")[0]}/${player2.name.split(" ")[0]}`,
-      player1Id: player1.id,
-      player2Id: player2.id,
-      player1Name: player1.name,
-      player2Name: player2.name,
-      seed: seed ? Number(seed) : null,
-    });
-    setTeamOpen(false);
-    setP1(""); setP2(""); setSeed("");
-  };
 
   const groupMatches = matches?.filter((m: Match) => m.stage === "grupo") || [];
   const bracketMatches = matches?.filter((m: Match) => m.stage !== "grupo") || [];
 
+  const allGroupFinished = groupMatches.length > 0 && groupMatches.every((m: Match) => m.status === "finalizado");
+
+  const roundMap: Record<number, Match[]> = {};
+  for (const m of groupMatches) {
+    const r = m.roundNumber || 1;
+    if (!roundMap[r]) roundMap[r] = [];
+    roundMap[r].push(m);
+  }
+  const roundNumbers = Object.keys(roundMap).map(Number).sort((a, b) => a - b);
+
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-2 flex-wrap">
-          <CardTitle className="text-base">Duplas ({teams?.length || 0})</CardTitle>
-          <Dialog open={teamOpen} onOpenChange={setTeamOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" data-testid="button-add-team"><Plus className="w-4 h-4 mr-2" /> Nova Dupla</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Cadastrar Dupla</DialogTitle></DialogHeader>
-              <form onSubmit={handleCreateTeam} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Jogador 1</Label>
-                  <Select value={p1} onValueChange={setP1}>
-                    <SelectTrigger data-testid="select-player1"><SelectValue placeholder="Selecionar atleta" /></SelectTrigger>
-                    <SelectContent>
-                      {athletes?.map((a: any) => <SelectItem key={a.id} value={a.id.toString()}>{a.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Jogador 2</Label>
-                  <Select value={p2} onValueChange={setP2}>
-                    <SelectTrigger data-testid="select-player2"><SelectValue placeholder="Selecionar atleta" /></SelectTrigger>
-                    <SelectContent>
-                      {athletes?.filter((a: any) => a.id.toString() !== p1).map((a: any) => <SelectItem key={a.id} value={a.id.toString()}>{a.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Cabeça de Chave (opcional)</Label>
-                  <Input type="number" min={1} value={seed} onChange={e => setSeed(e.target.value)} placeholder="Ex: 1" data-testid="input-seed" />
-                </div>
-                <Button type="submit" className="w-full" disabled={createTeam.isPending} data-testid="button-submit-team">
-                  {createTeam.isPending ? "Cadastrando..." : "Cadastrar Dupla"}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </CardHeader>
-        <CardContent>
-          {loadingTeams ? <Loader2 className="animate-spin mx-auto" /> : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {teams?.map((t: Team) => (
-                <div key={t.id} className="flex items-center justify-between p-3 border rounded-md bg-slate-50">
-                  <div>
-                    <span className="font-semibold">{t.name}</span>
-                    {t.seed && <Badge variant="secondary" className="ml-2 text-xs">Cab. {t.seed}</Badge>}
-                    {t.groupName && <Badge variant="outline" className="ml-2 text-xs">{t.groupName}</Badge>}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {t.groupWins || 0}V / {t.groupLosses || 0}D
-                  </div>
-                </div>
-              ))}
-              {teams?.length === 0 && <p className="col-span-full text-center text-muted-foreground py-4">Nenhuma dupla cadastrada.</p>}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
       <div className="flex flex-wrap gap-3">
         <Button
           onClick={() => generateMatches.mutate(categoryId)}
@@ -681,7 +708,7 @@ function CategoryTeamsMatches({ categoryId, athletes, teamOpen, setTeamOpen }: a
         <Button
           variant="outline"
           onClick={() => generateBracket.mutate(categoryId)}
-          disabled={generateBracket.isPending}
+          disabled={generateBracket.isPending || !allGroupFinished}
           data-testid="button-generate-bracket"
         >
           <BarChart3 className="w-4 h-4 mr-2" />
@@ -689,35 +716,32 @@ function CategoryTeamsMatches({ categoryId, athletes, teamOpen, setTeamOpen }: a
         </Button>
       </div>
 
-      {/* Standings */}
       {standings && Object.keys(standings).length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="text-base">Classificação</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Classificação por Chave</CardTitle></CardHeader>
           <CardContent>
             {Object.entries(standings).map(([groupName, groupTeams]: [string, any]) => (
               <div key={groupName} className="mb-4">
                 <h4 className="font-semibold text-sm text-primary mb-2">{groupName}</h4>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-slate-50">
-                      <tr>
+                    <thead>
+                      <tr className="border-b">
                         <th className="p-2 text-left">#</th>
                         <th className="p-2 text-left">Dupla</th>
                         <th className="p-2 text-center">V</th>
                         <th className="p-2 text-center">D</th>
-                        <th className="p-2 text-center">Sets</th>
-                        <th className="p-2 text-center">Pontos</th>
+                        <th className="p-2 text-center">Saldo Pts</th>
                       </tr>
                     </thead>
                     <tbody>
                       {groupTeams.map((t: Team, idx: number) => (
-                        <tr key={t.id} className="border-t">
+                        <tr key={t.id} className={`border-t ${idx < 2 ? "bg-green-50/50 dark:bg-green-950/20" : ""}`}>
                           <td className="p-2 text-muted-foreground font-bold">{idx + 1}</td>
                           <td className="p-2 font-medium">{t.name}</td>
                           <td className="p-2 text-center text-green-600 font-semibold">{t.groupWins || 0}</td>
                           <td className="p-2 text-center text-red-500">{t.groupLosses || 0}</td>
-                          <td className="p-2 text-center">{t.setsWon || 0}/{t.setsLost || 0}</td>
-                          <td className="p-2 text-center">{t.pointsScored || 0}/{t.pointsConceded || 0}</td>
+                          <td className="p-2 text-center">{(t.pointsScored || 0) - (t.pointsConceded || 0)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -729,28 +753,31 @@ function CategoryTeamsMatches({ categoryId, athletes, teamOpen, setTeamOpen }: a
         </Card>
       )}
 
-      {/* Group Matches */}
-      {groupMatches.length > 0 && (
-        <div>
-          <h3 className="font-bold mb-3">Fase de Grupos</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {groupMatches.map((m: Match) => {
-              const t1 = teams?.find((t: Team) => t.id === m.team1Id);
-              const t2 = teams?.find((t: Team) => t.id === m.team2Id);
-              return (
-                <div key={m.id} className="cursor-pointer" onClick={() => { setEditingMatch(m); setScoreOpen(true); }}>
-                  <MatchCard match={m} team1={t1} team2={t2} />
-                </div>
-              );
-            })}
-          </div>
+      {roundNumbers.length > 0 && (
+        <div className="space-y-6">
+          <h3 className="font-bold text-lg">Fase de Grupos</h3>
+          {roundNumbers.map(roundNum => (
+            <div key={roundNum}>
+              <h4 className="font-semibold mb-3 text-primary" data-testid={`text-round-${roundNum}`}>Rodada {roundNum}</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {roundMap[roundNum].map((m: Match) => {
+                  const t1 = teams?.find((t: Team) => t.id === m.team1Id);
+                  const t2 = teams?.find((t: Team) => t.id === m.team2Id);
+                  return (
+                    <div key={m.id} className="cursor-pointer" onClick={() => { setEditingMatch(m); setScoreOpen(true); }}>
+                      <MatchCard match={m} team1={t1} team2={t2} />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Bracket Matches */}
       {bracketMatches.length > 0 && (
         <div>
-          <h3 className="font-bold mb-3">Fase Eliminatória</h3>
+          <h3 className="font-bold text-lg mb-3">Fase Eliminatória</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {bracketMatches.map((m: Match) => {
               const t1 = teams?.find((t: Team) => t.id === m.team1Id);
@@ -765,7 +792,6 @@ function CategoryTeamsMatches({ categoryId, athletes, teamOpen, setTeamOpen }: a
         </div>
       )}
 
-      {/* Score Dialog */}
       <Dialog open={scoreOpen} onOpenChange={setScoreOpen}>
         <DialogContent className="sm:max-w-[450px]">
           <DialogHeader><DialogTitle>Atualizar Placar</DialogTitle></DialogHeader>
@@ -793,7 +819,7 @@ function ScoreEditor({ match, team1, team2, onSave }: { match: Match; team1?: Te
   const [s2s2, setS2s2] = useState(match.set2Team2 || 0);
   const [s3s1, setS3s1] = useState(match.set3Team1 || 0);
   const [s3s2, setS3s2] = useState(match.set3Team2 || 0);
-  const [status, setStatus] = useState(match.status);
+  const [status, setStatus] = useState<string>(match.status);
 
   const t1SetsWon = (s1s1 > s1s2 ? 1 : 0) + (s2s1 > s2s2 ? 1 : 0) + (s3s1 > s3s2 ? 1 : 0);
   const t2SetsWon = (s1s2 > s1s1 ? 1 : 0) + (s2s2 > s2s1 ? 1 : 0) + (s3s2 > s3s1 ? 1 : 0);
@@ -854,7 +880,7 @@ function ScoreEditor({ match, team1, team2, onSave }: { match: Match; team1?: Te
       </div>
 
       {winnerId && status === "finalizado" && (
-        <div className="bg-green-50 text-green-700 text-sm p-3 rounded-md text-center font-semibold">
+        <div className="bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 text-sm p-3 rounded-md text-center font-semibold">
           Vencedor: {winnerId === match.team1Id ? team1?.name : team2?.name} ({t1SetsWon > t2SetsWon ? t1SetsWon : t2SetsWon}x{t1SetsWon > t2SetsWon ? t2SetsWon : t1SetsWon})
         </div>
       )}
@@ -866,18 +892,12 @@ function ScoreEditor({ match, team1, team2, onSave }: { match: Match; team1?: Te
   );
 }
 
-function AthleteCodesTab({ tournamentId, athletes, open, setOpen }: any) {
+function AthleteCodesTab({ tournamentId, open, setOpen }: any) {
   const [athleteName, setAthleteName] = useState("");
   const { toast } = useToast();
 
   const { data: codes, isLoading: loading, refetch: loadCodes } = useQuery({
     queryKey: ["/api/tournaments", tournamentId, "athlete-codes"],
-    queryFn: async () => {
-      const res = await fetch(`/api/tournaments/${tournamentId}/athlete-codes`, { credentials: "include" });
-      if (!res.ok) return [];
-      return await res.json();
-    },
-    enabled: !!tournamentId,
   });
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -920,7 +940,7 @@ function AthleteCodesTab({ tournamentId, athletes, open, setOpen }: any) {
 
       {loading ? <Loader2 className="animate-spin mx-auto" /> : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {(codes || []).map((c: any) => (
+          {((codes as any[]) || []).map((c: any) => (
             <Card key={c.id}>
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
@@ -931,7 +951,7 @@ function AthleteCodesTab({ tournamentId, athletes, open, setOpen }: any) {
               </CardContent>
             </Card>
           ))}
-          {(!codes || codes.length === 0) && <p className="col-span-full text-center text-muted-foreground py-8">Nenhum código gerado.</p>}
+          {(!codes || (codes as any[]).length === 0) && <p className="col-span-full text-center text-muted-foreground py-8">Nenhum código gerado.</p>}
         </div>
       )}
     </div>

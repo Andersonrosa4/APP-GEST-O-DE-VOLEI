@@ -5,7 +5,7 @@ import { LayoutShell } from "@/components/layout-shell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MatchCard } from "@/components/match-card";
-import { Loader2, Calendar, MapPin, Trophy, Users } from "lucide-react";
+import { Loader2, Calendar, MapPin, Users } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState } from "react";
@@ -107,13 +107,16 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
 
   if (lm || lt) return <div className="py-12 flex justify-center"><Loader2 className="animate-spin" /></div>;
 
-  const sortedMatches = [...(matches || [])].sort((a: Match, b: Match) => {
-    const order: Record<string, number> = { em_andamento: 0, agendado: 1, finalizado: 2 };
-    return (order[a.status] ?? 3) - (order[b.status] ?? 3);
-  });
+  const groupMatches = (matches || []).filter((m: Match) => m.stage === "grupo");
+  const bracketMatches = (matches || []).filter((m: Match) => m.stage !== "grupo");
 
-  const groupMatches = sortedMatches.filter((m: Match) => m.stage === "grupo");
-  const bracketMatches = sortedMatches.filter((m: Match) => m.stage !== "grupo");
+  const roundMap: Record<number, Match[]> = {};
+  for (const m of groupMatches) {
+    const r = m.roundNumber || 1;
+    if (!roundMap[r]) roundMap[r] = [];
+    roundMap[r].push(m);
+  }
+  const roundNumbers = Object.keys(roundMap).map(Number).sort((a, b) => a - b);
 
   return (
     <Tabs defaultValue="jogos">
@@ -124,19 +127,24 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
       </TabsList>
 
       <TabsContent value="jogos" className="space-y-6">
-        {groupMatches.length > 0 && (
-          <div>
-            <h3 className="font-bold mb-3">Fase de Grupos</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {groupMatches.map((m: Match) => (
-                <MatchCard key={m.id} match={m} team1={teams?.find((t: Team) => t.id === m.team1Id)} team2={teams?.find((t: Team) => t.id === m.team2Id)} />
-              ))}
-            </div>
+        {roundNumbers.length > 0 && (
+          <div className="space-y-6">
+            <h3 className="font-bold text-lg">Fase de Grupos</h3>
+            {roundNumbers.map(roundNum => (
+              <div key={roundNum}>
+                <h4 className="font-semibold mb-3 text-primary">Rodada {roundNum}</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {roundMap[roundNum].map((m: Match) => (
+                    <MatchCard key={m.id} match={m} team1={teams?.find((t: Team) => t.id === m.team1Id)} team2={teams?.find((t: Team) => t.id === m.team2Id)} />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         )}
         {bracketMatches.length > 0 && (
           <div>
-            <h3 className="font-bold mb-3">Fase Eliminatória</h3>
+            <h3 className="font-bold text-lg mb-3">Fase Eliminatória</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {bracketMatches.map((m: Match) => (
                 <MatchCard key={m.id} match={m} team1={teams?.find((t: Team) => t.id === m.team1Id)} team2={teams?.find((t: Team) => t.id === m.team2Id)} />
@@ -144,7 +152,7 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
             </div>
           </div>
         )}
-        {sortedMatches.length === 0 && <p className="text-center text-muted-foreground py-8">Nenhum jogo agendado ainda.</p>}
+        {(matches || []).length === 0 && <p className="text-center text-muted-foreground py-8">Nenhum jogo agendado ainda.</p>}
       </TabsContent>
 
       <TabsContent value="classificacao">
@@ -155,25 +163,23 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
               <CardContent>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-slate-50">
-                      <tr>
+                    <thead>
+                      <tr className="border-b">
                         <th className="p-2 text-left">#</th>
                         <th className="p-2 text-left">Dupla</th>
-                        <th className="p-2 text-center">Vitórias</th>
-                        <th className="p-2 text-center">Derrotas</th>
-                        <th className="p-2 text-center">Sets (G/P)</th>
-                        <th className="p-2 text-center">Pontos (M/S)</th>
+                        <th className="p-2 text-center">V</th>
+                        <th className="p-2 text-center">D</th>
+                        <th className="p-2 text-center">Saldo Pts</th>
                       </tr>
                     </thead>
                     <tbody>
                       {groupTeams.map((t: Team, idx: number) => (
-                        <tr key={t.id} className="border-t">
+                        <tr key={t.id} className={`border-t ${idx < 2 ? "bg-green-50/50 dark:bg-green-950/20" : ""}`}>
                           <td className="p-2 font-bold text-muted-foreground">{idx + 1}</td>
                           <td className="p-2 font-medium">{t.name}</td>
                           <td className="p-2 text-center text-green-600 font-semibold">{t.groupWins || 0}</td>
                           <td className="p-2 text-center text-red-500">{t.groupLosses || 0}</td>
-                          <td className="p-2 text-center">{t.setsWon || 0}/{t.setsLost || 0}</td>
-                          <td className="p-2 text-center">{t.pointsScored || 0}/{t.pointsConceded || 0}</td>
+                          <td className="p-2 text-center">{(t.pointsScored || 0) - (t.pointsConceded || 0)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -194,7 +200,7 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
               <CardContent className="p-4">
                 <div className="font-bold text-lg">{t.name}</div>
                 <div className="text-sm text-muted-foreground mt-1">
-                  {t.player1Name} & {t.player2Name}
+                  {t.player1Name}{t.player2Name ? ` & ${t.player2Name}` : ""}
                 </div>
                 <div className="flex gap-2 mt-2">
                   {t.seed && <Badge variant="secondary" className="text-xs">Cab. {t.seed}</Badge>}

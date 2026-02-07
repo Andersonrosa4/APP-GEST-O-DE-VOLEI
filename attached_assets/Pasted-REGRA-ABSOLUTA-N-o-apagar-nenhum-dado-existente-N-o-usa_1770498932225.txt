@@ -1,0 +1,171 @@
+REGRA ABSOLUTA:
+Não apagar nenhum dado existente.
+Não usar DROP TABLE.
+Somente CREATE TABLE IF NOT EXISTS ou ALTER TABLE.
+
+Você é um engenheiro de software sênior especialista em algoritmos de torneios.
+
+Implemente as alterações abaixo no sistema existente.
+
+====================================================
+1) CADASTRO
+====================================================
+
+Remover cadastro individual de atletas.
+
+Manter APENAS cadastro de DUPLAS com os campos:
+- id
+- nome_da_dupla
+- categoria (masculino, feminino, misto)
+- torneio_id
+
+====================================================
+2) FASE DE GRUPOS
+====================================================
+
+Após cadastrar as duplas:
+
+Criar tela:
+"Sorteio de Chaves"
+
+- Organizador escolhe quantidade de chaves.
+- Sistema distribui duplas automaticamente.
+- Mostrar visualmente cada chave (A, B, C, D...)
+
+Após sorteio de chaves, criar tela:
+"Duplas por Chave"
+
+====================================================
+3) SORTEIO DE JOGOS POR RODADA
+====================================================
+
+Gerar jogos automaticamente:
+
+- Cada chave gera suas rodadas.
+- Em cada rodada acontece APENAS 1 jogo por chave.
+- Ordem das chaves por rodada:
+A → B → C → D → ...
+
+Garantir:
+Nenhuma dupla jogue dois jogos consecutivos.
+
+Exibir:
+Rodada 1:
+Chave A - Jogo
+Chave B - Jogo
+Chave C - Jogo
+
+Rodada 2:
+Chave A - Jogo
+...
+
+====================================================
+4) CRITÉRIOS DE CLASSIFICAÇÃO
+====================================================
+
+Ordenação:
+
+1º Vitórias
+2º Confronto direto (se apenas duas equipes empatadas)
+3º Saldo de pontos (pontos feitos - pontos sofridos)
+
+Sistema deve calcular automaticamente.
+
+====================================================
+5) QUATRO CHAVES (CRUZAMENTO OLÍMPICO FIXO)
+====================================================
+
+Quando houver 4 chaves:
+
+A1 vs D2
+D1 vs A2
+C1 vs B2
+B1 vs C2
+
+Gerar automaticamente.
+
+====================================================
+6) OUTRAS QUANTIDADES DE CHAVES
+====================================================
+
+Se chaves != 4:
+
+Sistema deve gerar sorteio inteligente obedecendo:
+
+- Duplas da mesma chave NÃO podem se enfrentar
+  nas quartas nem na semifinal.
+- Só podem se enfrentar novamente na final.
+
+Criar algoritmo que:
+
+- Monte lista de classificados
+- Crie pares sem conflito
+- Se gerar conflito, refaça sorteio automaticamente
+
+====================================================
+7) CASO COM 3 CHAVES
+====================================================
+
+Classificados:
+- 1º colocado de cada chave
+- Melhor 2º colocado geral
+
+Critério melhor 2º:
+Maior saldo de pontos.
+
+====================================================
+8) AVANÇO AUTOMÁTICO
+====================================================
+
+Após finalizar todos jogos da fase:
+
+Sistema identifica classificados.
+Gera automaticamente próxima fase.
+Sem ação manual.
+
+====================================================
+9) ÁREA DO ATLETA (POR CÓDIGO)
+====================================================
+
+Após inserir código do torneio:
+
+Atleta visualiza:
+- Classificação
+- Jogos da sua dupla
+- Próximos jogos
+- Resultados anteriores
+
+Somente leitura.
+
+====================================================
+10) BANCO DE DADOS
+====================================================
+
+Criar/alterar tabelas:
+
+teams
+groups
+group_teams
+matches
+scores
+standings
+
+Com relacionamentos corretos.
+
+====================================================
+11) QUALIDADE FINAL
+====================================================
+
+- Corrigir erros existentes
+- Garantir Supabase conectado
+- Garantir realtime funcionando
+- Garantir sistema não quebra
+
+====================================================
+12) ENTREGA
+====================================================
+
+Sistema atualizado,
+Código organizado,
+Interface em português,
+Sem perda de dados.
