@@ -11,6 +11,9 @@ export default {
         sm: ".1875rem", /* 3px */
       },
       colors: {
+        sand: { DEFAULT: '#facc15', 50: '#fefce8', 100: '#fef9c3', 500: '#eab308' },
+        ocean: { DEFAULT: '#0ea5e9', 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 900: '#0c4a6e' },
+        sun: { DEFAULT: '#f97316', 50: '#fff7ed', 500: '#f97316' },
         // Flat / base colors (regular buttons)
         background: "hsl(var(--background) / <alpha-value>)",
         foreground: "hsl(var(--foreground) / <alpha-value>)",
@@ -83,7 +86,8 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["var(--font-sans)"],
+        sans: ["Inter", "var(--font-sans)"],
+        heading: ["Outfit", "sans-serif"],
         serif: ["var(--font-serif)"],
         mono: ["var(--font-mono)"],
       },
