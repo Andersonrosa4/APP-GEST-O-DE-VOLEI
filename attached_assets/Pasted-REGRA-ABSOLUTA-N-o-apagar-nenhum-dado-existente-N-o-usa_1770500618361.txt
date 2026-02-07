@@ -1,0 +1,127 @@
+REGRA ABSOLUTA:
+Não apagar nenhum dado existente.
+Não usar DROP TABLE.
+Somente CREATE TABLE IF NOT EXISTS ou ALTER TABLE.
+
+Você é um engenheiro de software sênior especialista em Next.js, Supabase Realtime e UX.
+
+Implemente todas as funcionalidades abaixo.
+
+====================================================
+1) CÓDIGO DO TORNEIO
+====================================================
+
+- Ao criar um torneio, gerar automaticamente um código fixo de 4 dígitos.
+- Salvar esse código na tabela tournaments.
+- Esse código nunca muda.
+- Criar tela inicial para atleta inserir código.
+- Com esse código, atleta acessa todas informações do torneio.
+
+====================================================
+2) GERAÇÃO DE JOGOS
+====================================================
+
+Após sorteio de chaves:
+
+- Gerar automaticamente partidas.
+- Organizar por:
+  Rodada 1
+  Rodada 2
+  Rodada 3...
+
+- Cada rodada contém:
+  1 jogo de cada chave.
+
+Salvar cada jogo no banco com:
+- id
+- tournament_id
+- group
+- round_number
+- team1_id
+- team2_id
+- status (pendente, em_andamento, finalizado)
+
+====================================================
+3) ABA JOGOS E PLACAR (ADMIN E ORGANIZADOR)
+
+Criar página:
+
+"Jogos e Placar"
+
+Exibir:
+
+Rodada 1
+- Jogo 1
+- Jogo 2
+
+Rodada 2
+- Jogo 1
+- Jogo 2
+
+Com campos para inserir:
+
+Set 1
+Set 2
+Set 3 (opcional)
+
+Ao salvar:
+- Sistema calcula vencedor automaticamente
+- Atualiza status do jogo
+- Atualiza classificação
+
+====================================================
+4) REGRAS DE VITÓRIA
+
+- Vence quem ganhar 2 sets.
+- Cada set exige diferença mínima de 2 pontos.
+
+====================================================
+5) TEMPO REAL
+
+- Usar Supabase Realtime.
+- Quando placar for salvo:
+  Atualizar automaticamente:
+  - Painel Admin
+  - Painel Organizador
+  - Painel Atleta
+
+Sem refresh.
+
+====================================================
+6) PAINEL DO ATLETA
+
+Exibir:
+
+- Jogos da sua dupla
+- Próximos jogos
+- Resultados anteriores
+- Classificação
+- Chaves
+
+Somente leitura.
+
+====================================================
+7) VISUAL E UX
+
+- Interface moderna
+- Cores de vôlei de praia
+- Cards
+- Ícones
+- Títulos grandes
+- Layout agradável
+
+====================================================
+8) VALIDAÇÃO FINAL
+
+- Garantir que jogos apareçam em todos painéis
+- Garantir realtime funcionando
+- Garantir que nenhuma página quebre
+
+====================================================
+ENTREGA
+
+Sistema profissional,
+Jogos organizados por rodada,
+Placar funcional,
+Tempo real ativo,
+Visual melhorado.
