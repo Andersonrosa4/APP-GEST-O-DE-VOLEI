@@ -3,10 +3,10 @@ import { Link, Route, Switch, useRoute, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { LayoutShell } from "@/components/layout-shell";
 import {
-  Loader2, Plus, Trash2, Calendar, MapPin, Trophy, UserPlus, Swords, BarChart3, KeyRound, ArrowLeft, Shuffle, Grid3X3
+  Loader2, Plus, Trash2, Calendar, MapPin, Trophy, UserPlus, Swords, BarChart3, KeyRound, ArrowLeft, Shuffle, Grid3X3, Wand2, Waves
 } from "lucide-react";
 import { useTournaments, useCreateTournament, useDeleteTournament, useCategories, useCreateCategory } from "@/hooks/use-tournaments";
-import { useTeams, useCreateTeam, useDeleteTeam, useMatches, useDrawGroups, useGenerateMatches, useGenerateBracket, useUpdateMatch, useStandings, useLiveMatchUpdates } from "@/hooks/use-matches";
+import { useTeams, useCreateTeam, useDeleteTeam, useMatches, useDrawGroups, useGenerateMatches, useGenerateBracket, useUpdateMatch, useStandings, useLiveMatchUpdates, useGenerateTeams } from "@/hooks/use-matches";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -480,30 +480,34 @@ function CategoryTeamsAndGroups({ categoryId, tournamentId }: { categoryId: numb
   const createTeam = useCreateTeam();
   const deleteTeam = useDeleteTeam();
   const drawGroups = useDrawGroups();
+  const generateTeams = useGenerateTeams();
   const [teamOpen, setTeamOpen] = useState(false);
   const [drawOpen, setDrawOpen] = useState(false);
   const [teamName, setTeamName] = useState("");
-  const [player1Name, setPlayer1Name] = useState("");
-  const [player2Name, setPlayer2Name] = useState("");
   const [numGroups, setNumGroups] = useState("2");
+  const [autoQty, setAutoQty] = useState("4");
 
   const handleCreateTeam = async (e: React.FormEvent) => {
     e.preventDefault();
-    const name = teamName || `${player1Name}/${player2Name}`;
+    if (!teamName.trim()) return;
     await createTeam.mutateAsync({
       categoryId,
       tournamentId,
-      name,
-      player1Name: player1Name || name,
-      player2Name: player2Name || "",
+      name: teamName.trim(),
+      player1Name: teamName.trim(),
+      player2Name: "",
     });
     setTeamOpen(false);
-    setTeamName(""); setPlayer1Name(""); setPlayer2Name("");
+    setTeamName("");
   };
 
   const handleDraw = async () => {
     await drawGroups.mutateAsync({ categoryId, numGroups: Number(numGroups) });
     setDrawOpen(false);
+  };
+
+  const handleAutoGenerate = async () => {
+    await generateTeams.mutateAsync({ categoryId, quantity: Number(autoQty) });
   };
 
   const groupedTeams: Record<string, Team[]> = {};
@@ -526,7 +530,39 @@ function CategoryTeamsAndGroups({ categoryId, tournamentId }: { categoryId: numb
     <div className="space-y-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-2 flex-wrap">
-          <CardTitle className="text-base">Duplas Cadastradas ({teams?.length || 0})</CardTitle>
+          <CardTitle className="text-base font-bold">Gerar Duplas Automaticas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-end gap-3 flex-wrap">
+            <div className="space-y-1.5 flex-1 min-w-[120px]">
+              <Label className="text-sm font-semibold">Quantidade de duplas</Label>
+              <Input
+                type="number"
+                min={1}
+                max={64}
+                value={autoQty}
+                onChange={e => setAutoQty(e.target.value)}
+                data-testid="input-auto-qty"
+              />
+            </div>
+            <Button
+              onClick={handleAutoGenerate}
+              disabled={generateTeams.isPending}
+              data-testid="button-auto-generate"
+            >
+              <Wand2 className="w-4 h-4 mr-2" />
+              {generateTeams.isPending ? "Gerando..." : "Gerar"}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Cria duplas numeradas automaticamente (Dupla 1, Dupla 2, ...).
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between gap-2 flex-wrap">
+          <CardTitle className="text-base font-bold">Duplas Cadastradas ({teams?.length || 0})</CardTitle>
           <div className="flex gap-2">
             <Dialog open={drawOpen} onOpenChange={setDrawOpen}>
               <DialogTrigger asChild>
@@ -541,7 +577,7 @@ function CategoryTeamsAndGroups({ categoryId, tournamentId }: { categoryId: numb
                     Distribua as {teams?.length || 0} duplas em chaves automaticamente.
                   </p>
                   <div className="space-y-2">
-                    <Label>Número de Chaves</Label>
+                    <Label className="font-semibold">Numero de Chaves</Label>
                     <Select value={numGroups} onValueChange={setNumGroups}>
                       <SelectTrigger data-testid="select-num-groups"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -565,17 +601,8 @@ function CategoryTeamsAndGroups({ categoryId, tournamentId }: { categoryId: numb
                 <DialogHeader><DialogTitle>Cadastrar Dupla</DialogTitle></DialogHeader>
                 <form onSubmit={handleCreateTeam} className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Nome da Dupla</Label>
-                    <Input value={teamName} onChange={e => setTeamName(e.target.value)} placeholder="Ex: João/Maria" data-testid="input-team-name" />
-                    <p className="text-xs text-muted-foreground">Deixe vazio para gerar automaticamente.</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Jogador 1</Label>
-                    <Input value={player1Name} onChange={e => setPlayer1Name(e.target.value)} placeholder="Nome do jogador 1" required data-testid="input-player1-name" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Jogador 2</Label>
-                    <Input value={player2Name} onChange={e => setPlayer2Name(e.target.value)} placeholder="Nome do jogador 2" required data-testid="input-player2-name" />
+                    <Label className="font-semibold">Nome da Dupla</Label>
+                    <Input value={teamName} onChange={e => setTeamName(e.target.value)} placeholder="Ex: Joao/Maria" required data-testid="input-team-name" />
                   </div>
                   <Button type="submit" className="w-full" disabled={createTeam.isPending} data-testid="button-submit-team">
                     {createTeam.isPending ? "Cadastrando..." : "Cadastrar Dupla"}
@@ -589,19 +616,16 @@ function CategoryTeamsAndGroups({ categoryId, tournamentId }: { categoryId: numb
           {isLoading ? <Loader2 className="animate-spin mx-auto" /> : (
             <>
               {hasGroups && (
-                <div className="space-y-4">
+                <div className="space-y-5">
                   {sortedGroupNames.map(gName => (
                     <div key={gName}>
-                      <h4 className="font-semibold text-sm text-primary mb-2 flex items-center gap-2">
+                      <h4 className="font-bold text-sm text-primary mb-2 flex items-center gap-2">
                         <Grid3X3 className="w-4 h-4" /> {gName}
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {groupedTeams[gName].map((t: Team) => (
-                          <div key={t.id} className="flex items-center justify-between p-3 border rounded-md" data-testid={`team-card-${t.id}`}>
-                            <div>
-                              <span className="font-semibold">{t.name}</span>
-                              <div className="text-xs text-muted-foreground">{t.player1Name}{t.player2Name ? ` & ${t.player2Name}` : ""}</div>
-                            </div>
+                          <div key={t.id} className="flex items-center justify-between p-3 border rounded-md card-hover bg-card" data-testid={`team-card-${t.id}`}>
+                            <span className="font-semibold text-sm">{t.name}</span>
                             <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteTeam.mutate({ id: t.id, categoryId })} data-testid={`button-delete-team-${t.id}`}>
                               <Trash2 className="w-4 h-4" />
                             </Button>
@@ -614,15 +638,12 @@ function CategoryTeamsAndGroups({ categoryId, tournamentId }: { categoryId: numb
               )}
 
               {ungroupedTeams.length > 0 && (
-                <div className={hasGroups ? "mt-4" : ""}>
-                  {hasGroups && <h4 className="font-semibold text-sm text-muted-foreground mb-2">Sem Chave</h4>}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div className={hasGroups ? "mt-5 pt-5 border-t" : ""}>
+                  {hasGroups && <h4 className="font-bold text-sm text-muted-foreground mb-2">Sem Chave</h4>}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                     {ungroupedTeams.map((t: Team) => (
-                      <div key={t.id} className="flex items-center justify-between p-3 border rounded-md" data-testid={`team-card-${t.id}`}>
-                        <div>
-                          <span className="font-semibold">{t.name}</span>
-                          <div className="text-xs text-muted-foreground">{t.player1Name}{t.player2Name ? ` & ${t.player2Name}` : ""}</div>
-                        </div>
+                      <div key={t.id} className="flex items-center justify-between p-3 border rounded-md card-hover bg-card" data-testid={`team-card-${t.id}`}>
+                        <span className="font-semibold text-sm">{t.name}</span>
                         <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteTeam.mutate({ id: t.id, categoryId })} data-testid={`button-delete-team-${t.id}`}>
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -632,7 +653,13 @@ function CategoryTeamsAndGroups({ categoryId, tournamentId }: { categoryId: numb
                 </div>
               )}
 
-              {(teams?.length || 0) === 0 && <p className="text-center text-muted-foreground py-4">Nenhuma dupla cadastrada.</p>}
+              {(teams?.length || 0) === 0 && (
+                <div className="text-center py-8">
+                  <Waves className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-muted-foreground">Nenhuma dupla cadastrada.</p>
+                  <p className="text-xs text-muted-foreground mt-1">Use "Gerar Duplas Automaticas" acima ou cadastre manualmente.</p>
+                </div>
+              )}
             </>
           )}
         </CardContent>

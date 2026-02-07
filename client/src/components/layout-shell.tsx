@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Trophy, LogOut, Menu, User, LayoutDashboard, KeyRound } from "lucide-react";
+import { LogOut, Menu, User, LayoutDashboard, KeyRound, Waves } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export function LayoutShell({ children }: { children: React.ReactNode }) {
@@ -10,35 +10,53 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans flex flex-col">
-      <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="bg-ocean-gradient p-1.5 rounded-md text-white">
-              <Trophy className="h-5 w-5" />
+    <div className="min-h-screen bg-background font-sans flex flex-col">
+      <header className="sticky top-0 z-50 w-full border-b bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/70 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <div className="bg-ocean-gradient p-2 rounded-md text-white shadow-md">
+              <Waves className="h-5 w-5" />
             </div>
-            <span className="font-bold text-lg tracking-tight text-slate-900">
-              Beach<span className="text-primary">Manager</span>
-            </span>
+            <div className="flex flex-col leading-none">
+              <span className="font-extrabold text-base tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+                V<span className="text-primary">o</span>lei de Praia
+              </span>
+              <span className="text-[10px] text-muted-foreground font-medium tracking-wider uppercase">Torneios</span>
+            </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-4">
-            <Link href="/" className={cn("text-sm font-medium transition-colors hover:text-primary", location === "/" && "text-primary")}>
-              Torneios
+          <nav className="hidden md:flex items-center gap-1">
+            <Link href="/">
+              <Button
+                variant={location === "/" ? "secondary" : "ghost"}
+                size="sm"
+                data-testid="button-nav-tournaments"
+              >
+                Torneios
+              </Button>
             </Link>
-            <Link href="/atleta" className={cn("text-sm font-medium transition-colors hover:text-primary", location === "/atleta" && "text-primary")}>
-              Acesso Atleta
+            <Link href="/atleta">
+              <Button
+                variant={location === "/atleta" ? "secondary" : "ghost"}
+                size="sm"
+                data-testid="button-nav-athlete"
+              >
+                <KeyRound className="mr-1.5 h-3.5 w-3.5" />
+                Acesso Atleta
+              </Button>
             </Link>
 
+            <div className="w-px h-6 bg-border mx-2" />
+
             {isAuthenticated ? (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <Link href="/admin">
                   <Button variant={location.startsWith("/admin") ? "default" : "outline"} size="sm" data-testid="button-nav-admin">
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    <LayoutDashboard className="mr-1.5 h-3.5 w-3.5" />
                     Painel
                   </Button>
                 </Link>
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground bg-slate-100 px-3 py-1 rounded-full" data-testid="text-user-name">
+                <div className="flex items-center gap-1.5 text-sm text-muted-foreground bg-muted px-3 py-1.5 rounded-md" data-testid="text-user-name">
                   <User className="h-3.5 w-3.5" />
                   {user?.name}
                 </div>
@@ -53,11 +71,9 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
                 </Button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <Link href="/login">
-                  <Button size="sm" data-testid="button-nav-login">Entrar</Button>
-                </Link>
-              </div>
+              <Link href="/login">
+                <Button size="sm" data-testid="button-nav-login">Entrar</Button>
+              </Link>
             )}
           </nav>
 
@@ -70,11 +86,11 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
               </SheetTrigger>
               <SheetContent>
                 <div className="flex flex-col gap-4 mt-8">
-                  <Link href="/" className="text-lg font-medium">Torneios</Link>
-                  <Link href="/atleta" className="text-lg font-medium">Acesso Atleta</Link>
+                  <Link href="/" className="text-lg font-semibold">Torneios</Link>
+                  <Link href="/atleta" className="text-lg font-semibold">Acesso Atleta</Link>
                   {isAuthenticated ? (
                     <>
-                      <Link href="/admin" className="text-lg font-medium">Painel Admin</Link>
+                      <Link href="/admin" className="text-lg font-semibold">Painel Admin</Link>
                       <Button onClick={() => logoutMutation.mutate()} variant="destructive" className="w-full justify-start">
                         <LogOut className="mr-2 h-4 w-4" /> Sair
                       </Button>
@@ -93,9 +109,15 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
 
       <main className="flex-1">{children}</main>
 
-      <footer className="border-t bg-white py-6 mt-12">
-        <div className="max-w-7xl mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} Beach Manager - Gerenciamento de Torneios de Vôlei de Praia</p>
+      <footer className="border-t bg-white py-8 mt-12">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Waves className="w-4 h-4 text-primary" />
+            <span className="font-bold text-sm" style={{ fontFamily: 'var(--font-display)' }}>Volei de Praia</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            &copy; {new Date().getFullYear()} Gerenciamento de Torneios de Volei de Praia
+          </p>
         </div>
       </footer>
     </div>

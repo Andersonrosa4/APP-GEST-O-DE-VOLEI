@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, ArrowRight } from "lucide-react";
+import { User, ArrowRight, Waves } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function AthleteAccessPage() {
@@ -22,31 +22,33 @@ export default function AthleteAccessPage() {
         navigate(`/torneio/${data.tournament.id}`);
       }
     } catch {
-      setError("Código inválido. Verifique com o organizador.");
+      setError("Codigo invalido. Verifique com o organizador.");
     }
   };
 
   return (
-    <div className="min-h-screen bg-ocean-gradient flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center space-y-2">
-          <div className="mx-auto w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center">
-            <User className="w-8 h-8 text-accent" />
+    <div className="min-h-screen bg-hero-gradient flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-96 h-96 bg-sky-400/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 left-0 w-72 h-72 bg-amber-400/10 rounded-full blur-3xl" />
+      <Card className="w-full max-w-md relative z-10 shadow-2xl">
+        <CardHeader className="text-center space-y-3 pb-2">
+          <div className="mx-auto w-16 h-16 bg-sunset-gradient rounded-full flex items-center justify-center shadow-lg">
+            <User className="w-8 h-8 text-white" />
           </div>
           <CardTitle className="text-2xl">Acesso do Atleta</CardTitle>
           <p className="text-muted-foreground text-sm">
-            Digite o código de 4 dígitos fornecido pelo organizador
+            Digite o codigo de 4 digitos fornecido pelo organizador
           </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md" data-testid="text-athlete-error">
+              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md font-medium" data-testid="text-athlete-error">
                 {error}
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="code">Código de Acesso</Label>
+              <Label htmlFor="code" className="font-semibold">Codigo de Acesso</Label>
               <Input
                 id="code"
                 type="text"

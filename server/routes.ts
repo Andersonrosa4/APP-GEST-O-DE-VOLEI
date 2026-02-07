@@ -178,6 +178,33 @@ export async function registerRoutes(
     res.json({ message: "Dupla removida" });
   });
 
+  app.post("/api/categories/:categoryId/generate-teams", requireAuth, async (req, res) => {
+    try {
+      const categoryId = Number(req.params.categoryId);
+      const { quantity } = req.body;
+      const count = Math.min(Math.max(1, Number(quantity) || 1), 64);
+      const existing = await storage.getTeams(categoryId);
+      const startNum = existing.length + 1;
+      const category = await storage.getCategory(categoryId);
+      if (!category) return res.status(404).json({ message: "Categoria não encontrada" });
+      const created: Team[] = [];
+      for (let i = 0; i < count; i++) {
+        const num = startNum + i;
+        const team = await storage.createTeam({
+          categoryId,
+          tournamentId: category.tournamentId,
+          name: `Dupla ${num}`,
+          player1Name: `Dupla ${num}`,
+          player2Name: "",
+        });
+        created.push(team);
+      }
+      res.status(201).json(created);
+    } catch (e: any) {
+      res.status(400).json({ message: e.message });
+    }
+  });
+
   // === GROUP DRAW (Sorteio de Chaves) ===
   app.post("/api/categories/:categoryId/draw-groups", requireAuth, async (req, res) => {
     const categoryId = Number(req.params.categoryId);

@@ -46,6 +46,26 @@ export function useDeleteTeam() {
   });
 }
 
+export function useGenerateTeams() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({ categoryId, quantity }: { categoryId: number; quantity: number }) => {
+      const res = await apiRequest("POST", `/api/categories/${categoryId}/generate-teams`, { quantity });
+      return await res.json();
+    },
+    onSuccess: (teams: any[]) => {
+      if (teams.length > 0) {
+        queryClient.invalidateQueries({ queryKey: ["/api/categories", teams[0].categoryId, "teams"] });
+        toast({ title: "Duplas geradas", description: `${teams.length} duplas criadas automaticamente.` });
+      }
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    },
+  });
+}
+
 export function useMatches(categoryId: number) {
   return useQuery({
     queryKey: ["/api/categories", categoryId, "matches"],

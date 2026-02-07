@@ -5,7 +5,7 @@ import { LayoutShell } from "@/components/layout-shell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MatchCard } from "@/components/match-card";
-import { Loader2, Calendar, MapPin, Users } from "lucide-react";
+import { Loader2, Calendar, MapPin, Users, Waves } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState } from "react";
@@ -41,14 +41,15 @@ export default function TournamentDetailsPage() {
 
   return (
     <LayoutShell>
-      <div className="bg-slate-900 text-white py-12 relative overflow-hidden">
-        <div className="absolute inset-0 bg-ocean-gradient opacity-20" />
+      <div className="bg-hero-gradient text-white py-14 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-sky-400/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 bg-amber-400/10 rounded-full blur-3xl" />
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <Badge className="bg-white/10 text-white border-none mb-4" data-testid="badge-tournament-status">
             {statusLabels[tournament.status]}
           </Badge>
-          <h1 className="text-3xl md:text-4xl font-bold mb-4 text-white" data-testid="text-tournament-name">{tournament.name}</h1>
-          <div className="flex flex-wrap gap-6 text-slate-300 text-sm">
+          <h1 className="text-3xl md:text-5xl font-extrabold mb-4 text-white" data-testid="text-tournament-name">{tournament.name}</h1>
+          <div className="flex flex-wrap gap-6 text-white/70 text-sm">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
               {format(new Date(tournament.startDate), "dd MMM yyyy", { locale: ptBR })} - {format(new Date(tournament.endDate), "dd MMM yyyy", { locale: ptBR })}
@@ -63,7 +64,7 @@ export default function TournamentDetailsPage() {
             </div>
           </div>
           {tournament.description && (
-            <p className="text-slate-400 mt-4 max-w-2xl">{tournament.description}</p>
+            <p className="text-white/60 mt-4 max-w-2xl">{tournament.description}</p>
           )}
         </div>
       </div>
@@ -196,12 +197,9 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
       <TabsContent value="duplas">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {teams?.map((t: Team) => (
-            <Card key={t.id} data-testid={`card-team-${t.id}`}>
+            <Card key={t.id} className="card-hover" data-testid={`card-team-${t.id}`}>
               <CardContent className="p-4">
-                <div className="font-bold text-lg">{t.name}</div>
-                <div className="text-sm text-muted-foreground mt-1">
-                  {t.player1Name}{t.player2Name ? ` & ${t.player2Name}` : ""}
-                </div>
+                <div className="font-bold text-base">{t.name}</div>
                 <div className="flex gap-2 mt-2">
                   {t.seed && <Badge variant="secondary" className="text-xs">Cab. {t.seed}</Badge>}
                   {t.groupName && <Badge variant="outline" className="text-xs">{t.groupName}</Badge>}

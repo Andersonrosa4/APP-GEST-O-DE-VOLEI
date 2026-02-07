@@ -1,0 +1,105 @@
+REGRA ABSOLUTA:
+Não apagar nenhum dado existente.
+Não usar DROP TABLE.
+Somente CREATE TABLE IF NOT EXISTS ou ALTER TABLE.
+
+Você é um especialista em UX/UI e Frontend (Next.js + Tailwind).
+
+Implemente as melhorias abaixo:
+
+====================================================
+1) IDENTIDADE VISUAL
+====================================================
+
+Substituir TODAS as ocorrências de:
+"Beach Manager"
+por:
+"Vôlei de Praia"
+
+Tema visual:
+- Cores inspiradas em areia, mar e pôr do sol
+- Tons principais: azul, amarelo, laranja
+- Fundo claro
+- Cards com sombra suave
+- Bordas arredondadas
+
+====================================================
+2) CONTRASTE E LEGIBILIDADE
+====================================================
+
+- Títulos maiores
+- Subtítulos médios
+- Textos comuns menores
+- Usar pesos diferentes (font-weight)
+- Separadores visuais entre seções
+
+====================================================
+3) BOTÕES INTERATIVOS
+====================================================
+
+Todos os botões devem:
+
+- Aumentar levemente ao passar o mouse
+- Ter transição suave
+- Mudar levemente de cor
+- Cursor pointer
+
+====================================================
+4) CADASTRO DE DUPLAS
+====================================================
+
+Remover campos:
+- Jogador 1
+- Jogador 2
+
+Manter apenas:
+- Nome da Dupla
+
+====================================================
+5) CRIAÇÃO AUTOMÁTICA DE DUPLAS (SIMULAÇÃO)
+
+Na aba "Duplas":
+
+Criar seção:
+
+"Gerar Duplas Automáticas"
+
+Campos:
+- Quantidade de duplas (number)
+
+Botão:
+"Gerar"
+
+Ao clicar:
+Sistema cria automaticamente duplas com nomes:
+
+Dupla 1
+Dupla 2
+Dupla 3
+...
+
+Salvar no banco.
+
+====================================================
+6) MELHORIA DE LAYOUT DAS TELAS
+
+- Cards organizados em grid
+- Menu lateral com ícones
+- Cabeçalho fixo
+- Layout responsivo
+
+====================================================
+7) QUALIDADE FINAL
+
+- Corrigir erros
+- Garantir que nada quebre
+- Manter Supabase conectado
+- Código organizado
+
+====================================================
+ENTREGA
+
+Sistema mais bonito
+Sistema mais intuitivo
+Sistema mais rápido
+Sistema mais profissional

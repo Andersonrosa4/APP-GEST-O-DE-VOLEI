@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trophy, LogIn, Eye, EyeOff } from "lucide-react";
+import { Waves, LogIn, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -28,33 +28,35 @@ export default function LoginPage() {
       await loginMutation.mutateAsync({ username, password });
       navigate("/admin");
     } catch {
-      setError("Usuário ou senha incorretos.");
+      setError("Usuario ou senha incorretos.");
     }
   };
 
   return (
-    <div className="min-h-screen bg-ocean-gradient flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center space-y-2">
-          <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
-            <Trophy className="w-8 h-8 text-primary" />
+    <div className="min-h-screen bg-hero-gradient flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-96 h-96 bg-sky-400/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 left-0 w-72 h-72 bg-amber-400/10 rounded-full blur-3xl" />
+      <Card className="w-full max-w-md relative z-10 shadow-2xl">
+        <CardHeader className="text-center space-y-3 pb-2">
+          <div className="mx-auto w-16 h-16 bg-ocean-gradient rounded-full flex items-center justify-center shadow-lg">
+            <Waves className="w-8 h-8 text-white" />
           </div>
-          <CardTitle className="text-2xl">Beach Manager</CardTitle>
+          <CardTitle className="text-2xl">Volei de Praia</CardTitle>
           <p className="text-muted-foreground text-sm">Acesse o painel administrativo</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md" data-testid="text-login-error">
+              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md font-medium" data-testid="text-login-error">
                 {error}
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="username">Usuário</Label>
+              <Label htmlFor="username" className="font-semibold">Usuario</Label>
               <Input
                 id="username"
                 type="text"
-                placeholder="Seu usuário"
+                placeholder="Seu usuario"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -62,7 +64,7 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password" className="font-semibold">Senha</Label>
               <div className="relative">
                 <Input
                   id="password"
