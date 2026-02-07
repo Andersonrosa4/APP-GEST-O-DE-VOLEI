@@ -108,6 +108,12 @@ export default function HomePage() {
                           <Users className="w-4 h-4 flex-shrink-0 text-amber-500" />
                           <span>{t.courts} quadra{t.courts > 1 ? "s" : ""}</span>
                         </div>
+                        {t.code && (
+                          <div className="flex items-center gap-2">
+                            <KeyRound className="w-4 h-4 flex-shrink-0 text-primary" />
+                            <span className="font-mono font-bold tracking-wider">{t.code}</span>
+                          </div>
+                        )}
                       </div>
                       {t.description && (
                         <p className="text-sm text-muted-foreground line-clamp-2">{t.description}</p>

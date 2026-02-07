@@ -58,13 +58,17 @@ export async function registerRoutes(
     res.json({ message: "Organizador removido" });
   });
 
-  // === ATHLETE ACCESS (4-digit code) ===
+  // === ATHLETE ACCESS (4-digit tournament code) ===
   app.post("/api/athlete-access", async (req, res) => {
     const { code } = req.body;
+    const tournament = await storage.getTournamentByCode(code);
+    if (tournament) {
+      return res.json({ tournament });
+    }
     const ac = await storage.getAthleteCodeByCode(code);
     if (!ac) return res.status(404).json({ message: "Código inválido" });
-    const tournament = await storage.getTournament(ac.tournamentId);
-    res.json({ athleteName: ac.athleteName, tournament });
+    const t = await storage.getTournament(ac.tournamentId);
+    res.json({ athleteName: ac.athleteName, tournament: t });
   });
 
   // === ATHLETE CODES ===
@@ -107,6 +111,16 @@ export async function registerRoutes(
       const body = { ...req.body, organizerId: (req.user as User).id };
       if (body.startDate) body.startDate = new Date(body.startDate);
       if (body.endDate) body.endDate = new Date(body.endDate);
+
+      let code: string;
+      let codeExists = true;
+      do {
+        code = String(Math.floor(1000 + Math.random() * 9000));
+        const check = await storage.getTournamentByCode(code);
+        codeExists = !!check;
+      } while (codeExists);
+      body.code = code;
+
       const parsed = insertTournamentSchema.parse(body);
       const tournament = await storage.createTournament(parsed);
       res.status(201).json(tournament);

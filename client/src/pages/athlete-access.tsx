@@ -4,17 +4,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, ArrowRight, Waves } from "lucide-react";
+import { Waves, ArrowRight, Trophy } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function AthleteAccessPage() {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [, navigate] = useLocation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
     try {
       const res = await apiRequest("POST", "/api/athlete-access", { code });
       const data = await res.json();
@@ -22,7 +24,9 @@ export default function AthleteAccessPage() {
         navigate(`/torneio/${data.tournament.id}`);
       }
     } catch {
-      setError("Codigo invalido. Verifique com o organizador.");
+      setError("Codigo invalido. Verifique com o organizador do torneio.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -33,11 +37,11 @@ export default function AthleteAccessPage() {
       <Card className="w-full max-w-md relative z-10 shadow-2xl">
         <CardHeader className="text-center space-y-3 pb-2">
           <div className="mx-auto w-16 h-16 bg-sunset-gradient rounded-full flex items-center justify-center shadow-lg">
-            <User className="w-8 h-8 text-white" />
+            <Trophy className="w-8 h-8 text-white" />
           </div>
-          <CardTitle className="text-2xl">Acesso do Atleta</CardTitle>
+          <CardTitle className="text-2xl" data-testid="text-athlete-title">Acesso do Atleta</CardTitle>
           <p className="text-muted-foreground text-sm">
-            Digite o codigo de 4 digitos fornecido pelo organizador
+            Digite o codigo de 4 digitos do torneio para acompanhar jogos, resultados e classificacao em tempo real.
           </p>
         </CardHeader>
         <CardContent>
@@ -48,7 +52,7 @@ export default function AthleteAccessPage() {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="code" className="font-semibold">Codigo de Acesso</Label>
+              <Label htmlFor="code" className="font-semibold">Codigo do Torneio</Label>
               <Input
                 id="code"
                 type="text"
@@ -61,11 +65,16 @@ export default function AthleteAccessPage() {
                 data-testid="input-athlete-code"
               />
             </div>
-            <Button type="submit" className="w-full" disabled={code.length !== 4} data-testid="button-athlete-access">
-              Acessar
-              <ArrowRight className="w-4 h-4 ml-2" />
+            <Button type="submit" className="w-full" disabled={code.length !== 4 || loading} data-testid="button-athlete-access">
+              {loading ? "Verificando..." : "Acessar Torneio"}
+              {!loading && <ArrowRight className="w-4 h-4 ml-2" />}
             </Button>
           </form>
+          <div className="mt-6 pt-4 border-t text-center">
+            <p className="text-xs text-muted-foreground">
+              O codigo de acesso e fornecido pelo organizador do torneio.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

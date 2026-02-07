@@ -28,6 +28,7 @@ export const insertAthleteCodeSchema = createInsertSchema(athleteCodes).omit({ i
 export const tournaments = pgTable("tournaments", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  code: varchar("code", { length: 4 }),
   location: text("location").notNull(),
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),

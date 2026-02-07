@@ -316,6 +316,12 @@ function AdminTournamentDetail() {
             <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
               <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{currentTournament.location}</span>
               <Badge variant="outline">{statusLabels[currentTournament.status]}</Badge>
+              {currentTournament.code && (
+                <Badge variant="secondary" className="font-mono tracking-wider" data-testid="badge-tournament-code">
+                  <KeyRound className="w-3 h-3 mr-1" />
+                  {currentTournament.code}
+                </Badge>
+              )}
             </div>
           </div>
         </div>
@@ -851,69 +857,104 @@ function ScoreEditor({ match, team1, team2, onSave }: { match: Match; team1?: Te
   const t1SetsWon = (s1s1 > s1s2 ? 1 : 0) + (s2s1 > s2s2 ? 1 : 0) + (s3s1 > s3s2 ? 1 : 0);
   const t2SetsWon = (s1s2 > s1s1 ? 1 : 0) + (s2s2 > s2s1 ? 1 : 0) + (s3s2 > s3s1 ? 1 : 0);
 
+  const needsSet3 = t1SetsWon < 2 && t2SetsWon < 2 && (s1s1 > 0 || s1s2 > 0) && (s2s1 > 0 || s2s2 > 0);
+  const showSet3 = needsSet3 || s3s1 > 0 || s3s2 > 0;
+
   let winnerId = null;
   if (t1SetsWon >= 2) winnerId = match.team1Id;
   else if (t2SetsWon >= 2) winnerId = match.team2Id;
 
+  const autoFinalize = winnerId !== null;
+  const hasAnyScores = s1s1 > 0 || s1s2 > 0 || s2s1 > 0 || s2s2 > 0;
+
   const handleSave = () => {
+    let finalStatus = status;
+    if (autoFinalize) {
+      finalStatus = "finalizado";
+    } else if (hasAnyScores && status === "agendado") {
+      finalStatus = "em_andamento";
+    }
     onSave({
       set1Team1: s1s1, set1Team2: s1s2,
       set2Team1: s2s1, set2Team2: s2s2,
       set3Team1: s3s1, set3Team2: s3s2,
-      status,
-      winnerId: status === "finalizado" ? winnerId : null,
+      status: finalStatus,
+      winnerId: finalStatus === "finalizado" ? winnerId : null,
     });
+  };
+
+  const setIndicator = (a: number, b: number) => {
+    if (a === 0 && b === 0) return "";
+    return a > b ? "text-green-600 font-bold" : "text-red-500";
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Label>Status</Label>
-        <Select value={status} onValueChange={setStatus}>
-          <SelectTrigger className="w-[180px]" data-testid="select-match-status"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="agendado">Agendado</SelectItem>
-            <SelectItem value="em_andamento">Em Andamento</SelectItem>
-            <SelectItem value="finalizado">Finalizado</SelectItem>
-          </SelectContent>
-        </Select>
+      <div className="grid grid-cols-2 gap-3 text-center">
+        <div className="p-3 bg-muted/50 rounded-md">
+          <div className="text-xs text-muted-foreground mb-1">Dupla 1</div>
+          <div className="font-bold text-sm truncate" data-testid="text-score-team1">{team1?.name || "A definir"}</div>
+          <div className="text-2xl font-bold mt-1 text-primary">{t1SetsWon}</div>
+        </div>
+        <div className="p-3 bg-muted/50 rounded-md">
+          <div className="text-xs text-muted-foreground mb-1">Dupla 2</div>
+          <div className="font-bold text-sm truncate" data-testid="text-score-team2">{team2?.name || "A definir"}</div>
+          <div className="text-2xl font-bold mt-1 text-primary">{t2SetsWon}</div>
+        </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-muted-foreground">
-              <th className="p-2 text-left">Dupla</th>
-              <th className="p-2 text-center">Set 1</th>
-              <th className="p-2 text-center">Set 2</th>
-              <th className="p-2 text-center">Set 3</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border-t">
-              <td className="p-2 font-semibold">{team1?.name || "Dupla 1"}</td>
-              <td className="p-2"><Input type="number" min={0} max={99} className="w-16 text-center mx-auto" value={s1s1} onChange={e => setS1s1(Number(e.target.value))} data-testid="input-s1t1" /></td>
-              <td className="p-2"><Input type="number" min={0} max={99} className="w-16 text-center mx-auto" value={s2s1} onChange={e => setS2s1(Number(e.target.value))} data-testid="input-s2t1" /></td>
-              <td className="p-2"><Input type="number" min={0} max={99} className="w-16 text-center mx-auto" value={s3s1} onChange={e => setS3s1(Number(e.target.value))} data-testid="input-s3t1" /></td>
-            </tr>
-            <tr className="border-t">
-              <td className="p-2 font-semibold">{team2?.name || "Dupla 2"}</td>
-              <td className="p-2"><Input type="number" min={0} max={99} className="w-16 text-center mx-auto" value={s1s2} onChange={e => setS1s2(Number(e.target.value))} data-testid="input-s1t2" /></td>
-              <td className="p-2"><Input type="number" min={0} max={99} className="w-16 text-center mx-auto" value={s2s2} onChange={e => setS2s2(Number(e.target.value))} data-testid="input-s2t2" /></td>
-              <td className="p-2"><Input type="number" min={0} max={99} className="w-16 text-center mx-auto" value={s3s2} onChange={e => setS3s2(Number(e.target.value))} data-testid="input-s3t2" /></td>
-            </tr>
-          </tbody>
-        </table>
+      <div className="space-y-3">
+        <div className="grid grid-cols-3 gap-3 items-center">
+          <div className="text-center">
+            <Label className="text-xs text-muted-foreground">Set 1</Label>
+            <div className="flex items-center gap-1 mt-1">
+              <Input type="number" min={0} max={99} className={`w-14 text-center ${setIndicator(s1s1, s1s2)}`} value={s1s1} onChange={e => setS1s1(Number(e.target.value))} data-testid="input-s1t1" />
+              <span className="text-muted-foreground text-xs">x</span>
+              <Input type="number" min={0} max={99} className={`w-14 text-center ${setIndicator(s1s2, s1s1)}`} value={s1s2} onChange={e => setS1s2(Number(e.target.value))} data-testid="input-s1t2" />
+            </div>
+          </div>
+          <div className="text-center">
+            <Label className="text-xs text-muted-foreground">Set 2</Label>
+            <div className="flex items-center gap-1 mt-1">
+              <Input type="number" min={0} max={99} className={`w-14 text-center ${setIndicator(s2s1, s2s2)}`} value={s2s1} onChange={e => setS2s1(Number(e.target.value))} data-testid="input-s2t1" />
+              <span className="text-muted-foreground text-xs">x</span>
+              <Input type="number" min={0} max={99} className={`w-14 text-center ${setIndicator(s2s2, s2s1)}`} value={s2s2} onChange={e => setS2s2(Number(e.target.value))} data-testid="input-s2t2" />
+            </div>
+          </div>
+          <div className="text-center">
+            <Label className="text-xs text-muted-foreground">Set 3{!showSet3 ? " (opc.)" : ""}</Label>
+            <div className="flex items-center gap-1 mt-1">
+              <Input type="number" min={0} max={99} className={`w-14 text-center ${setIndicator(s3s1, s3s2)}`} value={s3s1} onChange={e => setS3s1(Number(e.target.value))} data-testid="input-s3t1" disabled={!showSet3 && !needsSet3} />
+              <span className="text-muted-foreground text-xs">x</span>
+              <Input type="number" min={0} max={99} className={`w-14 text-center ${setIndicator(s3s2, s3s1)}`} value={s3s2} onChange={e => setS3s2(Number(e.target.value))} data-testid="input-s3t2" disabled={!showSet3 && !needsSet3} />
+            </div>
+          </div>
+        </div>
       </div>
 
-      {winnerId && status === "finalizado" && (
-        <div className="bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 text-sm p-3 rounded-md text-center font-semibold">
+      {!autoFinalize && (
+        <div className="flex items-center justify-between">
+          <Label className="text-sm">Status</Label>
+          <Select value={hasAnyScores && status === "agendado" ? "em_andamento" : status} onValueChange={setStatus}>
+            <SelectTrigger className="w-[180px]" data-testid="select-match-status"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {!hasAnyScores && <SelectItem value="agendado">Agendado</SelectItem>}
+              <SelectItem value="em_andamento">Em Andamento</SelectItem>
+              <SelectItem value="finalizado">Finalizado</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {winnerId && (
+        <div className="bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 text-sm p-3 rounded-md text-center font-semibold" data-testid="text-winner-display">
+          <Trophy className="w-4 h-4 inline mr-1" />
           Vencedor: {winnerId === match.team1Id ? team1?.name : team2?.name} ({t1SetsWon > t2SetsWon ? t1SetsWon : t2SetsWon}x{t1SetsWon > t2SetsWon ? t2SetsWon : t1SetsWon})
         </div>
       )}
 
       <Button onClick={handleSave} className="w-full" data-testid="button-save-score">
-        Salvar Placar
+        {autoFinalize ? "Finalizar e Salvar" : "Salvar Placar"}
       </Button>
     </div>
   );

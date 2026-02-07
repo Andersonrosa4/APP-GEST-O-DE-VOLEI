@@ -24,6 +24,7 @@ export interface IStorage {
 
   getAllTournaments(): Promise<Tournament[]>;
   getTournament(id: number): Promise<Tournament | undefined>;
+  getTournamentByCode(code: string): Promise<Tournament | undefined>;
   createTournament(t: InsertTournament): Promise<Tournament>;
   updateTournament(id: number, updates: Partial<InsertTournament>): Promise<Tournament>;
   deleteTournament(id: number): Promise<void>;
@@ -89,6 +90,10 @@ export class DatabaseStorage implements IStorage {
   }
   async getTournament(id: number) {
     const [t] = await db.select().from(tournaments).where(eq(tournaments.id, id));
+    return t;
+  }
+  async getTournamentByCode(code: string) {
+    const [t] = await db.select().from(tournaments).where(eq(tournaments.code, code));
     return t;
   }
   async createTournament(t: InsertTournament) {
