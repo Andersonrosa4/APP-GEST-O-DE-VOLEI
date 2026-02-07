@@ -17,7 +17,7 @@ const MemoryStore = createMemoryStore(session);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
-  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getOrganizers(): Promise<User[]>;
   deleteUser(id: number): Promise<void>;
@@ -67,8 +67,8 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
-  async getUserByEmail(email: string) {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
+  async getUserByUsername(username: string) {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
     return user;
   }
   async createUser(u: InsertUser) {

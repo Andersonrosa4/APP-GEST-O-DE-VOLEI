@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Trophy, LogIn, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -25,10 +25,10 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     try {
-      await loginMutation.mutateAsync({ email, password });
+      await loginMutation.mutateAsync({ username, password });
       navigate("/admin");
     } catch {
-      setError("Email ou senha incorretos.");
+      setError("Usuário ou senha incorretos.");
     }
   };
 
@@ -50,15 +50,15 @@ export default function LoginPage() {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="username">Usuário</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="username"
+                type="text"
+                placeholder="Seu usuário"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
-                data-testid="input-email"
+                data-testid="input-username"
               />
             </div>
             <div className="space-y-2">
@@ -90,7 +90,7 @@ export default function LoginPage() {
               <LogIn className="w-4 h-4 ml-2" />
             </Button>
             <p className="text-xs text-center text-muted-foreground mt-4">
-              Admin: admin@beachmanager.com / ADM007
+              Admin: admin / ADM007
             </p>
           </form>
         </CardContent>

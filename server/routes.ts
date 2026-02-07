@@ -41,8 +41,8 @@ export async function registerRoutes(
   app.post("/api/users", requireAdmin, async (req, res) => {
     try {
       const parsed = insertUserSchema.parse({ ...req.body, role: "organizer" });
-      const existing = await storage.getUserByEmail(parsed.email);
-      if (existing) return res.status(400).json({ message: "Email já cadastrado" });
+      const existing = await storage.getUserByUsername(parsed.username);
+      if (existing) return res.status(400).json({ message: "Usuário já cadastrado" });
       const hashedPassword = await hashPassword(parsed.password);
       const user = await storage.createUser({ ...parsed, password: hashedPassword });
       const { password, ...safeUser } = user;
@@ -475,11 +475,11 @@ export async function registerRoutes(
 }
 
 async function seedDatabase() {
-  const admin = await storage.getUserByEmail("admin@beachmanager.com");
+  const admin = await storage.getUserByUsername("admin");
   if (!admin) {
     const adminHash = await hashPassword("ADM007");
     const adminUser = await storage.createUser({
-      email: "admin@beachmanager.com",
+      username: "admin",
       password: adminHash,
       name: "Admin Master",
       role: "admin",
@@ -487,7 +487,7 @@ async function seedDatabase() {
 
     const orgHash = await hashPassword("org123");
     const org = await storage.createUser({
-      email: "organizador@beachmanager.com",
+      username: "organizador",
       password: orgHash,
       name: "Carlos Silva",
       role: "organizer",

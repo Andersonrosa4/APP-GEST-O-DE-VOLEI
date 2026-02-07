@@ -22,8 +22,8 @@ client/src/components/ - layout-shell.tsx, match-card.tsx, ui/
 ```
 
 ## Access Levels
-1. **Admin Master**: Fixed login admin@beachmanager.com / ADM007 - full system control
-2. **Organizers**: Created by admin - manage tournaments, categories, athletes, teams, scores
+1. **Admin Master**: Fixed login admin / ADM007 (username, not email) - full system control
+2. **Organizers**: Created by admin with username/password - manage tournaments, categories, athletes, teams, scores
 3. **Athletes**: 4-digit code access (no login) - view tournament info and scores only
 
 ## Database Schema
@@ -36,7 +36,7 @@ client/src/components/ - layout-shell.tsx, match-card.tsx, ui/
 - athlete_codes (4-digit access codes)
 
 ## Key Routes
-- POST /api/login - Email/password authentication
+- POST /api/login - Username/password authentication
 - POST /api/athlete-access - 4-digit code access
 - GET/POST /api/tournaments - Tournament CRUD
 - GET/POST /api/categories - Category CRUD

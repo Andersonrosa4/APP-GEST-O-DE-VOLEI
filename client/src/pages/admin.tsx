@@ -202,7 +202,7 @@ function CreateTournamentForm({ onSuccess }: { onSuccess: () => void }) {
 function AdminOrganizers() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const { toast } = useToast();
 
@@ -218,10 +218,10 @@ function AdminOrganizers() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiRequest("POST", "/api/users", { name, email, password, role: "organizer" });
+      await apiRequest("POST", "/api/users", { name, username, password, role: "organizer" });
       toast({ title: "Organizador criado", description: `${name} adicionado com sucesso.` });
       setOpen(false);
-      setName(""); setEmail(""); setPassword("");
+      setName(""); setUsername(""); setPassword("");
       refetch();
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
@@ -261,8 +261,8 @@ function AdminOrganizers() {
                 <Input value={name} onChange={e => setName(e.target.value)} placeholder="Nome completo" required data-testid="input-org-name" />
               </div>
               <div className="space-y-2">
-                <Label>Email</Label>
-                <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@exemplo.com" required data-testid="input-org-email" />
+                <Label>Usuário</Label>
+                <Input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="nome.usuario" required data-testid="input-org-username" />
               </div>
               <div className="space-y-2">
                 <Label>Senha</Label>
@@ -281,7 +281,7 @@ function AdminOrganizers() {
               <CardContent className="p-4 flex items-center justify-between">
                 <div>
                   <div className="font-semibold">{org.name}</div>
-                  <div className="text-sm text-muted-foreground">{org.email}</div>
+                  <div className="text-sm text-muted-foreground">{org.username}</div>
                 </div>
                 <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(org.id)} data-testid={`button-delete-org-${org.id}`}>
                   <Trash2 className="w-4 h-4" />
