@@ -1,0 +1,103 @@
+Crie um Web App completo de gerenciamento de torneios de vôlei de praia.
+
+Tecnologias obrigatórias:
+- Next.js (App Router)
+- React
+- Tailwind CSS
+- Supabase (Auth, Database, Realtime)
+
+Objetivo:
+Sistema SaaS para organizar campeonatos de vôlei de praia, com painel administrativo, área do atleta e área pública.
+
+========================
+AUTENTICAÇÃO
+========================
+- Login por email e senha usando Supabase Auth
+- Perfis: admin, organizador, atleta
+- Proteção de rotas por perfil
+
+========================
+PAINEL ADMINISTRATIVO
+========================
+- Criar, editar e excluir campeonatos
+- Definir local, data, número de quadras
+- Definir quantidade de sets e pontos por set
+- Criar categorias:
+  - Masculino
+  - Feminino
+  - Misto
+
+========================
+ATLETAS E DUPLAS
+========================
+- Cadastro de atletas
+- Cadastro de duplas
+- Um atleta não pode estar em duas duplas no mesmo campeonato
+
+========================
+TORNEIOS
+========================
+- Número ilimitado de duplas (até 1000)
+- Todos os campeonatos possuem fase de grupos
+- Sistema gera grupos automaticamente
+- Sistema gera confrontos automaticamente
+
+========================
+SORTEIO
+========================
+- Sorteio automático
+- Opção de cabeça de chave
+- Opção manual
+
+========================
+PLACAR
+========================
+- Placar por set
+- Melhor de 3 sets
+- Atualização em tempo real com Supabase Realtime
+
+========================
+Fases eliminatórias
+========================
+- Quartas de final
+- Semifinal
+- Final
+- Sistema gera automaticamente conforme resultados
+
+========================
+CLASSIFICAÇÃO
+========================
+Critérios:
+- Vitórias
+- Saldo de sets
+- Pontos marcados
+
+========================
+ÁREA PÚBLICA (SEM LOGIN)
+========================
+- Visualizar campeonatos
+- Tabelas
+- Jogos
+- Resultados
+- Horários
+
+========================
+REQUISITOS TÉCNICOS
+========================
+- Criar schema SQL no Supabase
+- Criar políticas RLS
+- Criar cliente Supabase
+- Usar variáveis de ambiente
+- Interface responsiva e temática de vôlei de praia
+- Código organizado por pastas
+
+========================
+ENTREGÁVEIS
+========================
+1. Estrutura de pastas
+2. Código completo
+3. Scripts SQL
+4. Instruções de deploy
+5. README explicativo
+
+Gere tudo pronto para execução e publicação.
