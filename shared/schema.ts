@@ -1,22 +1,30 @@
-
 import { pgTable, text, serial, integer, boolean, timestamp, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
-// === USERS ===
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(), // Acts as email
+  email: text("email").notNull().unique(),
   password: text("password").notNull(),
   name: text("name").notNull(),
-  role: text("role", { enum: ["admin", "organizer", "athlete"] }).default("athlete").notNull(),
+  role: text("role", { enum: ["admin", "organizer"] }).notNull().default("organizer"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 
-// === TOURNAMENTS ===
+export const athleteCodes = pgTable("athlete_codes", {
+  id: serial("id").primaryKey(),
+  code: varchar("code", { length: 4 }).notNull().unique(),
+  athleteName: text("athlete_name").notNull(),
+  tournamentId: integer("tournament_id").notNull(),
+  createdBy: integer("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertAthleteCodeSchema = createInsertSchema(athleteCodes).omit({ id: true, createdAt: true });
+
 export const tournaments = pgTable("tournaments", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -24,137 +32,120 @@ export const tournaments = pgTable("tournaments", {
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
   description: text("description"),
-  status: text("status", { enum: ["draft", "open", "ongoing", "completed"] }).default("draft").notNull(),
-  organizerId: integer("organizer_id").notNull(), // Linked to users.id
+  status: text("status", { enum: ["rascunho", "aberto", "em_andamento", "finalizado"] }).default("rascunho").notNull(),
+  organizerId: integer("organizer_id").notNull(),
   courts: integer("courts").default(1).notNull(),
+  setsPerMatch: integer("sets_per_match").default(3).notNull(),
+  pointsPerSet: integer("points_per_set").default(21).notNull(),
+  pointsTiebreak: integer("points_tiebreak").default(15).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertTournamentSchema = createInsertSchema(tournaments).omit({ id: true });
+export const insertTournamentSchema = createInsertSchema(tournaments).omit({ id: true, createdAt: true });
 
-// === CATEGORIES ===
 export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
   tournamentId: integer("tournament_id").notNull(),
-  name: text("name").notNull(), // e.g. "Open Male", "U18 Female"
-  gender: text("gender", { enum: ["male", "female", "mixed"] }).notNull(),
-  minTeams: integer("min_teams").default(4),
+  name: text("name").notNull(),
+  gender: text("gender", { enum: ["masculino", "feminino", "misto"] }).notNull(),
   maxTeams: integer("max_teams").default(32),
 });
 
 export const insertCategorySchema = createInsertSchema(categories).omit({ id: true });
 
-// === TEAMS ===
+export const athletes = pgTable("athletes", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  tournamentId: integer("tournament_id").notNull(),
+  createdBy: integer("created_by").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertAthleteSchema = createInsertSchema(athletes).omit({ id: true, createdAt: true });
+
 export const teams = pgTable("teams", {
   id: serial("id").primaryKey(),
   categoryId: integer("category_id").notNull(),
-  name: text("name").notNull(), // e.g. "Bruno/Alison"
-  player1Id: integer("player1_id"), // Can be null if manual entry
-  player2Id: integer("player2_id"),
-  player1Name: text("player1_name").notNull(), // Fallback or direct name
+  name: text("name").notNull(),
+  player1Id: integer("player1_id").notNull(),
+  player2Id: integer("player2_id").notNull(),
+  player1Name: text("player1_name").notNull(),
   player2Name: text("player2_name").notNull(),
-  status: text("status", { enum: ["pending", "approved", "rejected"] }).default("pending").notNull(),
-  points: integer("points").default(0), // For ranking
+  seed: integer("seed"),
+  groupName: text("group_name"),
+  groupWins: integer("group_wins").default(0),
+  groupLosses: integer("group_losses").default(0),
   setsWon: integer("sets_won").default(0),
   setsLost: integer("sets_lost").default(0),
-  matchesPlayed: integer("matches_played").default(0),
+  pointsScored: integer("points_scored").default(0),
+  pointsConceded: integer("points_conceded").default(0),
 });
 
-export const insertTeamSchema = createInsertSchema(teams).omit({ 
-  id: true, 
-  points: true, 
-  setsWon: true, 
-  setsLost: true, 
-  matchesPlayed: true 
+export const insertTeamSchema = createInsertSchema(teams).omit({
+  id: true, groupWins: true, groupLosses: true,
+  setsWon: true, setsLost: true, pointsScored: true, pointsConceded: true,
 });
 
-// === MATCHES ===
 export const matches = pgTable("matches", {
   id: serial("id").primaryKey(),
   categoryId: integer("category_id").notNull(),
-  team1Id: integer("team1_id"), // Can be null in bracket template
+  team1Id: integer("team1_id"),
   team2Id: integer("team2_id"),
   courtNumber: integer("court_number").default(1),
   scheduledTime: timestamp("scheduled_time"),
-  
-  // Scores (Best of 3)
-  scoreTeam1Set1: integer("score_team1_set1").default(0),
-  scoreTeam2Set1: integer("score_team2_set1").default(0),
-  scoreTeam1Set2: integer("score_team1_set2").default(0),
-  scoreTeam2Set2: integer("score_team2_set2").default(0),
-  scoreTeam1Set3: integer("score_team1_set3").default(0),
-  scoreTeam2Set3: integer("score_team2_set3").default(0),
-  
+  set1Team1: integer("set1_team1").default(0),
+  set1Team2: integer("set1_team2").default(0),
+  set2Team1: integer("set2_team1").default(0),
+  set2Team2: integer("set2_team2").default(0),
+  set3Team1: integer("set3_team1").default(0),
+  set3Team2: integer("set3_team2").default(0),
   winnerId: integer("winner_id"),
-  status: text("status", { enum: ["scheduled", "warmup", "in_progress", "finished"] }).default("scheduled").notNull(),
-  stage: text("stage", { enum: ["group", "quarter_final", "semi_final", "final", "bronze"] }).default("group").notNull(),
-  groupName: text("group_name"), // "Group A", etc.
+  status: text("status", { enum: ["agendado", "em_andamento", "finalizado"] }).default("agendado").notNull(),
+  stage: text("stage", { enum: ["grupo", "quartas", "semifinal", "final", "terceiro"] }).default("grupo").notNull(),
+  groupName: text("group_name"),
 });
 
 export const insertMatchSchema = createInsertSchema(matches).omit({ id: true });
 
-// === RELATIONS ===
+// Relations
 export const tournamentsRelations = relations(tournaments, ({ one, many }) => ({
-  organizer: one(users, {
-    fields: [tournaments.organizerId],
-    references: [users.id],
-  }),
+  organizer: one(users, { fields: [tournaments.organizerId], references: [users.id] }),
   categories: many(categories),
 }));
 
 export const categoriesRelations = relations(categories, ({ one, many }) => ({
-  tournament: one(tournaments, {
-    fields: [categories.tournamentId],
-    references: [tournaments.id],
-  }),
+  tournament: one(tournaments, { fields: [categories.tournamentId], references: [tournaments.id] }),
   teams: many(teams),
   matches: many(matches),
 }));
 
-export const matchesRelations = relations(matches, ({ one }) => ({
-  category: one(categories, {
-    fields: [matches.categoryId],
-    references: [categories.id],
-  }),
-  team1: one(teams, {
-    fields: [matches.team1Id],
-    references: [teams.id],
-    relationName: "team1Matches",
-  }),
-  team2: one(teams, {
-    fields: [matches.team2Id],
-    references: [teams.id],
-    relationName: "team2Matches",
-  }),
+export const teamsRelations = relations(teams, ({ one }) => ({
+  category: one(categories, { fields: [teams.categoryId], references: [categories.id] }),
+  player1: one(athletes, { fields: [teams.player1Id], references: [athletes.id], relationName: "player1" }),
+  player2: one(athletes, { fields: [teams.player2Id], references: [athletes.id], relationName: "player2" }),
 }));
 
-// === TYPES ===
+export const matchesRelations = relations(matches, ({ one }) => ({
+  category: one(categories, { fields: [matches.categoryId], references: [categories.id] }),
+  team1: one(teams, { fields: [matches.team1Id], references: [teams.id], relationName: "matchTeam1" }),
+  team2: one(teams, { fields: [matches.team2Id], references: [teams.id], relationName: "matchTeam2" }),
+  winner: one(teams, { fields: [matches.winnerId], references: [teams.id], relationName: "matchWinner" }),
+}));
+
+// Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
-
 export type Tournament = typeof tournaments.$inferSelect;
 export type InsertTournament = z.infer<typeof insertTournamentSchema>;
-
 export type Category = typeof categories.$inferSelect;
 export type InsertCategory = z.infer<typeof insertCategorySchema>;
-
+export type Athlete = typeof athletes.$inferSelect;
+export type InsertAthlete = z.infer<typeof insertAthleteSchema>;
 export type Team = typeof teams.$inferSelect;
 export type InsertTeam = z.infer<typeof insertTeamSchema>;
-
 export type Match = typeof matches.$inferSelect;
 export type InsertMatch = z.infer<typeof insertMatchSchema>;
-export type UpdateMatchScore = {
-  scoreTeam1Set1?: number;
-  scoreTeam2Set1?: number;
-  scoreTeam1Set2?: number;
-  scoreTeam2Set2?: number;
-  scoreTeam1Set3?: number;
-  scoreTeam2Set3?: number;
-  status?: string;
-  winnerId?: number;
-};
-
-// WebSocket Types
-export type WSMessage = {
-  type: "MATCH_UPDATE";
-  payload: Match;
-};
+export type AthleteCode = typeof athleteCodes.$inferSelect;
+export type InsertAthleteCode = z.infer<typeof insertAthleteCodeSchema>;

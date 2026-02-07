@@ -1,51 +1,52 @@
 import { Match, Team } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Clock, MapPin } from "lucide-react";
+import { Trophy, Clock } from "lucide-react";
 import { format } from "date-fns";
+
+const stageLabels: Record<string, string> = {
+  grupo: "Fase de Grupos",
+  quartas: "Quartas de Final",
+  semifinal: "Semifinal",
+  final: "Final",
+  terceiro: "Disputa 3o Lugar",
+};
+
+const statusLabels: Record<string, string> = {
+  agendado: "Agendado",
+  em_andamento: "Ao Vivo",
+  finalizado: "Finalizado",
+};
 
 interface MatchCardProps {
   match: Match;
   team1?: Team;
   team2?: Team;
-  isLive?: boolean;
 }
 
-export function MatchCard({ match, team1, team2, isLive }: MatchCardProps) {
-  const isFinished = match.status === "finished";
-  const isScheduled = match.status === "scheduled";
-  
-  // Calculate total sets to determine leader
-  const t1Sets = (match.scoreTeam1Set1 > match.scoreTeam2Set1 ? 1 : 0) + 
-                 (match.scoreTeam1Set2 > match.scoreTeam2Set2 ? 1 : 0) + 
-                 (match.scoreTeam1Set3 > match.scoreTeam2Set3 ? 1 : 0);
-  
-  const t2Sets = (match.scoreTeam2Set1 > match.scoreTeam1Set1 ? 1 : 0) + 
-                 (match.scoreTeam2Set2 > match.scoreTeam1Set2 ? 1 : 0) + 
-                 (match.scoreTeam2Set3 > match.scoreTeam1Set3 ? 1 : 0);
+export function MatchCard({ match, team1, team2 }: MatchCardProps) {
+  const isLive = match.status === "em_andamento";
+  const isFinished = match.status === "finalizado";
+  const isScheduled = match.status === "agendado";
 
   return (
     <div className={cn(
-      "relative rounded-xl border bg-card p-4 shadow-sm transition-all hover:shadow-md",
-      isLive && "ring-2 ring-primary border-primary/20 shadow-primary/10"
-    )}>
-      {/* Header */}
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium uppercase tracking-wider">
-          <span className="bg-slate-100 px-2 py-0.5 rounded">Court {match.courtNumber}</span>
-          <span>{match.stage.replace('_', ' ')}</span>
+      "relative rounded-md border bg-white p-4 shadow-sm transition-all",
+      isLive && "ring-2 ring-red-400 border-red-200"
+    )} data-testid={`card-match-${match.id}`}>
+      <div className="flex justify-between items-center mb-3">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium">
+          <span className="bg-slate-100 px-2 py-0.5 rounded-md">Quadra {match.courtNumber}</span>
+          <span>{stageLabels[match.stage] || match.stage}</span>
+          {match.groupName && <span className="text-primary font-semibold">{match.groupName}</span>}
         </div>
-        {match.status === "in_progress" && (
-          <Badge variant="default" className="bg-red-500 hover:bg-red-600 animate-pulse">
-            LIVE
+        {isLive && (
+          <Badge variant="destructive" className="animate-pulse" data-testid={`badge-live-${match.id}`}>
+            AO VIVO
           </Badge>
         )}
-        {match.status === "finished" && (
-          <Badge variant="secondary" className="bg-slate-100 text-slate-600">
-            Final
-          </Badge>
-        )}
-        {match.status === "scheduled" && match.scheduledTime && (
+        {isFinished && <Badge variant="secondary">Final</Badge>}
+        {isScheduled && match.scheduledTime && (
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Clock className="w-3 h-3" />
             {format(new Date(match.scheduledTime), "HH:mm")}
@@ -53,61 +54,61 @@ export function MatchCard({ match, team1, team2, isLive }: MatchCardProps) {
         )}
       </div>
 
-      {/* Teams & Scores */}
-      <div className="space-y-3">
-        {/* Team 1 */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-             {match.winnerId === match.team1Id && isFinished && <Trophy className="w-4 h-4 text-amber-500" />}
-             <span className={cn(
-               "font-display font-semibold text-lg truncate max-w-[120px] sm:max-w-[180px]",
-               match.winnerId === match.team1Id ? "text-slate-900" : "text-slate-600"
-             )}>
-               {team1?.name || "TBD"}
-             </span>
-          </div>
-          <div className="flex gap-2 font-mono text-sm">
-            <ScoreBox score={match.scoreTeam1Set1} active={!isScheduled} />
-            <ScoreBox score={match.scoreTeam1Set2} active={match.scoreTeam1Set1 > 0 || match.scoreTeam2Set1 > 0} />
-            {(match.scoreTeam1Set3 > 0 || match.scoreTeam2Set3 > 0) && (
-              <ScoreBox score={match.scoreTeam1Set3} active={true} />
-            )}
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="h-px bg-slate-100 my-2" />
-
-        {/* Team 2 */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-             {match.winnerId === match.team2Id && isFinished && <Trophy className="w-4 h-4 text-amber-500" />}
-             <span className={cn(
-               "font-display font-semibold text-lg truncate max-w-[120px] sm:max-w-[180px]",
-               match.winnerId === match.team2Id ? "text-slate-900" : "text-slate-600"
-             )}>
-               {team2?.name || "TBD"}
-             </span>
-          </div>
-          <div className="flex gap-2 font-mono text-sm">
-            <ScoreBox score={match.scoreTeam2Set1} active={!isScheduled} />
-            <ScoreBox score={match.scoreTeam2Set2} active={match.scoreTeam1Set1 > 0 || match.scoreTeam2Set1 > 0} />
-            {(match.scoreTeam1Set3 > 0 || match.scoreTeam2Set3 > 0) && (
-              <ScoreBox score={match.scoreTeam2Set3} active={true} />
-            )}
-          </div>
-        </div>
+      <div className="space-y-2">
+        <TeamScoreRow
+          teamName={team1?.name || "A definir"}
+          sets={[match.set1Team1 || 0, match.set2Team1 || 0, match.set3Team1 || 0]}
+          isWinner={match.winnerId === match.team1Id && isFinished}
+          showScores={!isScheduled}
+          hasSet3={(match.set3Team1 || 0) > 0 || (match.set3Team2 || 0) > 0}
+        />
+        <div className="h-px bg-slate-100" />
+        <TeamScoreRow
+          teamName={team2?.name || "A definir"}
+          sets={[match.set1Team2 || 0, match.set2Team2 || 0, match.set3Team2 || 0]}
+          isWinner={match.winnerId === match.team2Id && isFinished}
+          showScores={!isScheduled}
+          hasSet3={(match.set3Team1 || 0) > 0 || (match.set3Team2 || 0) > 0}
+        />
       </div>
     </div>
   );
 }
 
-function ScoreBox({ score, active }: { score: number, active: boolean }) {
+function TeamScoreRow({ teamName, sets, isWinner, showScores, hasSet3 }: {
+  teamName: string;
+  sets: number[];
+  isWinner: boolean;
+  showScores: boolean;
+  hasSet3: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2 min-w-0">
+        {isWinner && <Trophy className="w-4 h-4 text-amber-500 flex-shrink-0" />}
+        <span className={cn(
+          "font-semibold truncate",
+          isWinner ? "text-slate-900" : "text-slate-500"
+        )}>
+          {teamName}
+        </span>
+      </div>
+      {showScores && (
+        <div className="flex gap-1.5 font-mono text-sm flex-shrink-0">
+          <ScoreBox score={sets[0]} />
+          <ScoreBox score={sets[1]} />
+          {hasSet3 && <ScoreBox score={sets[2]} />}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ScoreBox({ score }: { score: number }) {
   return (
     <div className={cn(
-      "w-8 h-8 flex items-center justify-center rounded bg-slate-50 text-slate-400 font-bold",
-      active && "bg-slate-100 text-slate-900",
-      score >= 21 && "bg-primary/10 text-primary" // Highlighting winning score vaguely
+      "w-7 h-7 flex items-center justify-center rounded-md bg-slate-50 text-slate-600 text-xs font-bold",
+      score >= 21 && "bg-primary/10 text-primary"
     )}>
       {score}
     </div>

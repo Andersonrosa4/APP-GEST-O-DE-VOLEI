@@ -1,158 +1,57 @@
-
 import { z } from 'zod';
-import { insertUserSchema, insertTournamentSchema, insertCategorySchema, insertTeamSchema, insertMatchSchema, users, tournaments, categories, teams, matches } from './schema';
 
-// Shared error schemas
 export const errorSchemas = {
-  validation: z.object({
-    message: z.string(),
-    field: z.string().optional(),
-  }),
-  notFound: z.object({
-    message: z.string(),
-  }),
-  internal: z.object({
-    message: z.string(),
-  }),
+  validation: z.object({ message: z.string(), field: z.string().optional() }),
+  notFound: z.object({ message: z.string() }),
+  internal: z.object({ message: z.string() }),
 };
 
 export const api = {
   auth: {
-    login: {
-      method: 'POST' as const,
-      path: '/api/login' as const,
-      input: z.object({
-        username: z.string(),
-        password: z.string(),
-      }),
-      responses: {
-        200: z.custom<typeof users.$inferSelect>(),
-        401: z.object({ message: z.string() }),
-      },
-    },
-    register: {
-      method: 'POST' as const,
-      path: '/api/register' as const,
-      input: insertUserSchema,
-      responses: {
-        201: z.custom<typeof users.$inferSelect>(),
-        400: errorSchemas.validation,
-      },
-    },
-    logout: {
-      method: 'POST' as const,
-      path: '/api/logout' as const,
-      responses: {
-        200: z.object({ message: z.string() }),
-      },
-    },
-    me: {
-      method: 'GET' as const,
-      path: '/api/user' as const,
-      responses: {
-        200: z.custom<typeof users.$inferSelect>(),
-        401: z.null(),
-      },
-    },
+    login: { method: 'POST' as const, path: '/api/login' as const, input: z.object({ email: z.string(), password: z.string() }), responses: { 200: z.any(), 401: z.object({ message: z.string() }) } },
+    logout: { method: 'POST' as const, path: '/api/logout' as const, responses: { 200: z.object({ message: z.string() }) } },
+    me: { method: 'GET' as const, path: '/api/user' as const, responses: { 200: z.any(), 401: z.null() } },
+    athleteAccess: { method: 'POST' as const, path: '/api/athlete-access' as const, input: z.object({ code: z.string().length(4) }), responses: { 200: z.any(), 404: errorSchemas.notFound } },
+  },
+  users: {
+    list: { method: 'GET' as const, path: '/api/users' as const, responses: { 200: z.array(z.any()) } },
+    create: { method: 'POST' as const, path: '/api/users' as const, input: z.any(), responses: { 201: z.any(), 400: errorSchemas.validation } },
+    delete: { method: 'DELETE' as const, path: '/api/users/:id' as const, responses: { 200: z.any(), 404: errorSchemas.notFound } },
   },
   tournaments: {
-    list: {
-      method: 'GET' as const,
-      path: '/api/tournaments' as const,
-      responses: {
-        200: z.array(z.custom<typeof tournaments.$inferSelect>()),
-      },
-    },
-    get: {
-      method: 'GET' as const,
-      path: '/api/tournaments/:id' as const,
-      responses: {
-        200: z.custom<typeof tournaments.$inferSelect>(),
-        404: errorSchemas.notFound,
-      },
-    },
-    create: {
-      method: 'POST' as const,
-      path: '/api/tournaments' as const,
-      input: insertTournamentSchema,
-      responses: {
-        201: z.custom<typeof tournaments.$inferSelect>(),
-        400: errorSchemas.validation,
-      },
-    },
-    delete: {
-      method: 'DELETE' as const,
-      path: '/api/tournaments/:id' as const,
-      responses: {
-        200: z.void(),
-        404: errorSchemas.notFound,
-      },
-    }
+    list: { method: 'GET' as const, path: '/api/tournaments' as const, responses: { 200: z.array(z.any()) } },
+    get: { method: 'GET' as const, path: '/api/tournaments/:id' as const, responses: { 200: z.any(), 404: errorSchemas.notFound } },
+    create: { method: 'POST' as const, path: '/api/tournaments' as const, input: z.any(), responses: { 201: z.any() } },
+    update: { method: 'PATCH' as const, path: '/api/tournaments/:id' as const, input: z.any(), responses: { 200: z.any() } },
+    delete: { method: 'DELETE' as const, path: '/api/tournaments/:id' as const, responses: { 200: z.any() } },
   },
   categories: {
-    list: {
-      method: 'GET' as const,
-      path: '/api/tournaments/:id/categories' as const,
-      responses: {
-        200: z.array(z.custom<typeof categories.$inferSelect>()),
-      },
-    },
-    create: {
-      method: 'POST' as const,
-      path: '/api/categories' as const,
-      input: insertCategorySchema,
-      responses: {
-        201: z.custom<typeof categories.$inferSelect>(),
-      },
-    },
+    list: { method: 'GET' as const, path: '/api/tournaments/:id/categories' as const, responses: { 200: z.array(z.any()) } },
+    create: { method: 'POST' as const, path: '/api/categories' as const, input: z.any(), responses: { 201: z.any() } },
+    delete: { method: 'DELETE' as const, path: '/api/categories/:id' as const, responses: { 200: z.any() } },
+  },
+  athletes: {
+    list: { method: 'GET' as const, path: '/api/tournaments/:id/athletes' as const, responses: { 200: z.array(z.any()) } },
+    create: { method: 'POST' as const, path: '/api/athletes' as const, input: z.any(), responses: { 201: z.any() } },
+    delete: { method: 'DELETE' as const, path: '/api/athletes/:id' as const, responses: { 200: z.any() } },
   },
   teams: {
-    list: {
-      method: 'GET' as const,
-      path: '/api/categories/:categoryId/teams' as const,
-      responses: {
-        200: z.array(z.custom<typeof teams.$inferSelect>()),
-      },
-    },
-    create: {
-      method: 'POST' as const,
-      path: '/api/teams' as const,
-      input: insertTeamSchema,
-      responses: {
-        201: z.custom<typeof teams.$inferSelect>(),
-      },
-    },
-    approve: {
-      method: 'PATCH' as const,
-      path: '/api/teams/:id/approve' as const,
-      responses: {
-        200: z.custom<typeof teams.$inferSelect>(),
-      },
-    },
+    list: { method: 'GET' as const, path: '/api/categories/:categoryId/teams' as const, responses: { 200: z.array(z.any()) } },
+    create: { method: 'POST' as const, path: '/api/teams' as const, input: z.any(), responses: { 201: z.any() } },
+    delete: { method: 'DELETE' as const, path: '/api/teams/:id' as const, responses: { 200: z.any() } },
   },
   matches: {
-    list: {
-      method: 'GET' as const,
-      path: '/api/categories/:categoryId/matches' as const,
-      responses: {
-        200: z.array(z.custom<typeof matches.$inferSelect>()),
-      },
-    },
-    generate: {
-      method: 'POST' as const,
-      path: '/api/categories/:categoryId/generate-matches' as const,
-      responses: {
-        201: z.array(z.custom<typeof matches.$inferSelect>()),
-      },
-    },
-    update: {
-      method: 'PATCH' as const,
-      path: '/api/matches/:id' as const,
-      input: insertMatchSchema.partial(),
-      responses: {
-        200: z.custom<typeof matches.$inferSelect>(),
-      },
-    },
+    list: { method: 'GET' as const, path: '/api/categories/:categoryId/matches' as const, responses: { 200: z.array(z.any()) } },
+    generate: { method: 'POST' as const, path: '/api/categories/:categoryId/generate-matches' as const, responses: { 201: z.array(z.any()) } },
+    update: { method: 'PATCH' as const, path: '/api/matches/:id' as const, input: z.any(), responses: { 200: z.any() } },
+    generateBracket: { method: 'POST' as const, path: '/api/categories/:categoryId/generate-bracket' as const, responses: { 201: z.array(z.any()) } },
+  },
+  athleteCodes: {
+    list: { method: 'GET' as const, path: '/api/tournaments/:id/athlete-codes' as const, responses: { 200: z.array(z.any()) } },
+    create: { method: 'POST' as const, path: '/api/athlete-codes' as const, input: z.any(), responses: { 201: z.any() } },
+  },
+  standings: {
+    get: { method: 'GET' as const, path: '/api/categories/:categoryId/standings' as const, responses: { 200: z.array(z.any()) } },
   },
 };
 

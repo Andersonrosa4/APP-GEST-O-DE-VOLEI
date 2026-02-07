@@ -1,186 +1,209 @@
 import { useRoute } from "wouter";
 import { useTournament, useCategories } from "@/hooks/use-tournaments";
-import { useMatches, useTeams, useLiveMatchUpdates } from "@/hooks/use-matches";
+import { useMatches, useTeams, useStandings, useLiveMatchUpdates } from "@/hooks/use-matches";
 import { LayoutShell } from "@/components/layout-shell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MatchCard } from "@/components/match-card";
-import { Loader2, Calendar, MapPin, Trophy } from "lucide-react";
+import { Loader2, Calendar, MapPin, Trophy, Users } from "lucide-react";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import type { Match, Team } from "@shared/schema";
+
+const statusLabels: Record<string, string> = {
+  rascunho: "Rascunho",
+  aberto: "Inscrições Abertas",
+  em_andamento: "Em Andamento",
+  finalizado: "Finalizado",
+};
 
 export default function TournamentDetailsPage() {
-  const [, params] = useRoute("/tournaments/:id");
+  const [, params] = useRoute("/torneio/:id");
   const tournamentId = Number(params?.id);
-  
-  const { data: tournament, isLoading: loadingTournament } = useTournament(tournamentId);
-  const { data: categories, isLoading: loadingCategories } = useCategories(tournamentId);
-  
+  const { data: tournament, isLoading: lt } = useTournament(tournamentId);
+  const { data: categories, isLoading: lc } = useCategories(tournamentId);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
-  if (loadingTournament || loadingCategories) {
+  if (lt || lc) {
     return (
       <LayoutShell>
-        <div className="flex justify-center items-center h-[50vh]">
-          <Loader2 className="w-10 h-10 animate-spin text-primary" />
-        </div>
+        <div className="flex justify-center items-center h-[50vh]"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>
       </LayoutShell>
     );
   }
 
-  if (!tournament) return <div>Tournament not found</div>;
+  if (!tournament) return <LayoutShell><div className="text-center py-12">Torneio não encontrado</div></LayoutShell>;
 
-  // Default to first category if none selected
   const activeCategoryId = selectedCategoryId ? Number(selectedCategoryId) : categories?.[0]?.id;
 
   return (
     <LayoutShell>
-      {/* Tournament Header */}
-      <div className="bg-slate-900 text-white py-12 md:py-20 relative overflow-hidden">
+      <div className="bg-slate-900 text-white py-12 relative overflow-hidden">
         <div className="absolute inset-0 bg-ocean-gradient opacity-20" />
-        <div className="container mx-auto px-4 relative z-10">
-          <Badge className="bg-white/10 text-white hover:bg-white/20 mb-4 border-none">
-            {tournament.status.toUpperCase()}
+        <div className="max-w-6xl mx-auto px-4 relative z-10">
+          <Badge className="bg-white/10 text-white border-none mb-4" data-testid="badge-tournament-status">
+            {statusLabels[tournament.status]}
           </Badge>
-          <h1 className="text-4xl md:text-5xl font-display font-bold mb-4">{tournament.name}</h1>
-          <div className="flex flex-wrap gap-6 text-slate-300">
+          <h1 className="text-3xl md:text-4xl font-bold mb-4 text-white" data-testid="text-tournament-name">{tournament.name}</h1>
+          <div className="flex flex-wrap gap-6 text-slate-300 text-sm">
             <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
-              {format(new Date(tournament.startDate), "MMMM d, yyyy")}
+              <Calendar className="w-4 h-4" />
+              {format(new Date(tournament.startDate), "dd MMM yyyy", { locale: ptBR })} - {format(new Date(tournament.endDate), "dd MMM yyyy", { locale: ptBR })}
             </div>
             <div className="flex items-center gap-2">
-              <MapPin className="w-5 h-5" />
+              <MapPin className="w-4 h-4" />
               {tournament.location}
             </div>
             <div className="flex items-center gap-2">
-              <Trophy className="w-5 h-5" />
-              {categories?.length} Categories
+              <Users className="w-4 h-4" />
+              {tournament.courts} quadra{tournament.courts > 1 ? "s" : ""}
             </div>
           </div>
+          {tournament.description && (
+            <p className="text-slate-400 mt-4 max-w-2xl">{tournament.description}</p>
+          )}
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Category Selector */}
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-bold font-display text-slate-900">Competition</h2>
-          <div className="w-[200px]">
-             <Select 
-               value={activeCategoryId?.toString()} 
-               onValueChange={setSelectedCategoryId}
-             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories?.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id.toString()}>
-                    {cat.name} ({cat.gender})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+          <h2 className="text-xl font-bold">Competição</h2>
+          {categories && categories.length > 0 && (
+            <div className="w-[200px]">
+              <Select value={activeCategoryId?.toString()} onValueChange={setSelectedCategoryId}>
+                <SelectTrigger data-testid="select-public-category"><SelectValue placeholder="Selecionar categoria" /></SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat: any) => (
+                    <SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
 
         {activeCategoryId ? (
-          <CategoryView categoryId={activeCategoryId} />
+          <CategoryPublicView categoryId={activeCategoryId} />
         ) : (
-          <div className="text-center py-20 bg-slate-50 rounded-xl border border-dashed">
-            <p className="text-muted-foreground">No categories available for this tournament.</p>
-          </div>
+          <Card>
+            <CardContent className="p-12 text-center text-muted-foreground">
+              Nenhuma categoria disponível para este torneio.
+            </CardContent>
+          </Card>
         )}
       </div>
     </LayoutShell>
   );
 }
 
-function CategoryView({ categoryId }: { categoryId: number }) {
-  const { data: matches, isLoading: loadingMatches } = useMatches(categoryId);
-  const { data: teams, isLoading: loadingTeams } = useTeams(categoryId);
+function CategoryPublicView({ categoryId }: { categoryId: number }) {
+  const { data: matches, isLoading: lm } = useMatches(categoryId);
+  const { data: teams, isLoading: lt } = useTeams(categoryId);
+  const { data: standings } = useStandings(categoryId);
   useLiveMatchUpdates(categoryId);
 
-  if (loadingMatches || loadingTeams) {
-     return <div className="py-20 flex justify-center"><Loader2 className="animate-spin" /></div>;
-  }
+  if (lm || lt) return <div className="py-12 flex justify-center"><Loader2 className="animate-spin" /></div>;
 
-  // Sort matches: Live -> Scheduled -> Finished
-  const sortedMatches = [...(matches || [])].sort((a, b) => {
-    const statusOrder = { in_progress: 0, scheduled: 1, finished: 2, warmup: 0 };
-    return (statusOrder[a.status as keyof typeof statusOrder] || 3) - (statusOrder[b.status as keyof typeof statusOrder] || 3);
+  const sortedMatches = [...(matches || [])].sort((a: Match, b: Match) => {
+    const order: Record<string, number> = { em_andamento: 0, agendado: 1, finalizado: 2 };
+    return (order[a.status] ?? 3) - (order[b.status] ?? 3);
   });
 
+  const groupMatches = sortedMatches.filter((m: Match) => m.stage === "grupo");
+  const bracketMatches = sortedMatches.filter((m: Match) => m.stage !== "grupo");
+
   return (
-    <Tabs defaultValue="matches" className="w-full">
-      <TabsList className="mb-8 w-full md:w-auto">
-        <TabsTrigger value="matches">Matches</TabsTrigger>
-        <TabsTrigger value="standings">Standings</TabsTrigger>
-        <TabsTrigger value="teams">Teams</TabsTrigger>
+    <Tabs defaultValue="jogos">
+      <TabsList className="mb-6">
+        <TabsTrigger value="jogos" data-testid="tab-public-matches">Jogos</TabsTrigger>
+        <TabsTrigger value="classificacao" data-testid="tab-public-standings">Classificação</TabsTrigger>
+        <TabsTrigger value="duplas" data-testid="tab-public-teams">Duplas</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="matches" className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sortedMatches.map((match) => {
-             const t1 = teams?.find(t => t.id === match.team1Id);
-             const t2 = teams?.find(t => t.id === match.team2Id);
-             return (
-               <MatchCard 
-                 key={match.id} 
-                 match={match} 
-                 team1={t1} 
-                 team2={t2} 
-                 isLive={match.status === 'in_progress'} 
-               />
-             );
-          })}
-          {sortedMatches.length === 0 && <p className="col-span-full text-center text-muted-foreground">No matches scheduled yet.</p>}
-        </div>
-      </TabsContent>
-
-      <TabsContent value="standings">
-        <Card>
-          <CardHeader>
-            <CardTitle>Rankings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 text-slate-500 font-medium">
-                <tr>
-                  <th className="p-3">Rank</th>
-                  <th className="p-3">Team</th>
-                  <th className="p-3 text-center">Played</th>
-                  <th className="p-3 text-center">Won</th>
-                  <th className="p-3 text-right">Points</th>
-                </tr>
-              </thead>
-              <tbody>
-                {teams?.sort((a,b) => (b.points || 0) - (a.points || 0)).map((team, idx) => (
-                  <tr key={team.id} className="border-t">
-                    <td className="p-3 font-bold text-slate-400">#{idx + 1}</td>
-                    <td className="p-3 font-medium text-slate-900">{team.name}</td>
-                    <td className="p-3 text-center">{team.matchesPlayed}</td>
-                    <td className="p-3 text-center text-green-600 font-bold">{team.setsWon}</td> {/* Simple heuristic */}
-                    <td className="p-3 text-right font-bold">{team.points}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-       <TabsContent value="teams">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {teams?.map(team => (
-            <div key={team.id} className="bg-white p-4 rounded-lg border shadow-sm">
-              <div className="font-bold text-lg">{team.name}</div>
-              <div className="text-sm text-muted-foreground mt-1">
-                {team.player1Name} & {team.player2Name}
-              </div>
+      <TabsContent value="jogos" className="space-y-6">
+        {groupMatches.length > 0 && (
+          <div>
+            <h3 className="font-bold mb-3">Fase de Grupos</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {groupMatches.map((m: Match) => (
+                <MatchCard key={m.id} match={m} team1={teams?.find((t: Team) => t.id === m.team1Id)} team2={teams?.find((t: Team) => t.id === m.team2Id)} />
+              ))}
             </div>
+          </div>
+        )}
+        {bracketMatches.length > 0 && (
+          <div>
+            <h3 className="font-bold mb-3">Fase Eliminatória</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {bracketMatches.map((m: Match) => (
+                <MatchCard key={m.id} match={m} team1={teams?.find((t: Team) => t.id === m.team1Id)} team2={teams?.find((t: Team) => t.id === m.team2Id)} />
+              ))}
+            </div>
+          </div>
+        )}
+        {sortedMatches.length === 0 && <p className="text-center text-muted-foreground py-8">Nenhum jogo agendado ainda.</p>}
+      </TabsContent>
+
+      <TabsContent value="classificacao">
+        {standings && Object.keys(standings).length > 0 ? (
+          Object.entries(standings).map(([groupName, groupTeams]: [string, any]) => (
+            <Card key={groupName} className="mb-4">
+              <CardHeader><CardTitle className="text-base">{groupName}</CardTitle></CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="p-2 text-left">#</th>
+                        <th className="p-2 text-left">Dupla</th>
+                        <th className="p-2 text-center">Vitórias</th>
+                        <th className="p-2 text-center">Derrotas</th>
+                        <th className="p-2 text-center">Sets (G/P)</th>
+                        <th className="p-2 text-center">Pontos (M/S)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {groupTeams.map((t: Team, idx: number) => (
+                        <tr key={t.id} className="border-t">
+                          <td className="p-2 font-bold text-muted-foreground">{idx + 1}</td>
+                          <td className="p-2 font-medium">{t.name}</td>
+                          <td className="p-2 text-center text-green-600 font-semibold">{t.groupWins || 0}</td>
+                          <td className="p-2 text-center text-red-500">{t.groupLosses || 0}</td>
+                          <td className="p-2 text-center">{t.setsWon || 0}/{t.setsLost || 0}</td>
+                          <td className="p-2 text-center">{t.pointsScored || 0}/{t.pointsConceded || 0}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <Card><CardContent className="p-8 text-center text-muted-foreground">Classificação ainda não disponível.</CardContent></Card>
+        )}
+      </TabsContent>
+
+      <TabsContent value="duplas">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {teams?.map((t: Team) => (
+            <Card key={t.id} data-testid={`card-team-${t.id}`}>
+              <CardContent className="p-4">
+                <div className="font-bold text-lg">{t.name}</div>
+                <div className="text-sm text-muted-foreground mt-1">
+                  {t.player1Name} & {t.player2Name}
+                </div>
+                <div className="flex gap-2 mt-2">
+                  {t.seed && <Badge variant="secondary" className="text-xs">Cab. {t.seed}</Badge>}
+                  {t.groupName && <Badge variant="outline" className="text-xs">{t.groupName}</Badge>}
+                </div>
+              </CardContent>
+            </Card>
           ))}
+          {teams?.length === 0 && <p className="col-span-full text-center text-muted-foreground py-8">Nenhuma dupla inscrita.</p>}
         </div>
       </TabsContent>
     </Tabs>

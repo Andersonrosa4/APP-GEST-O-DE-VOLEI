@@ -1,28 +1,25 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, buildUrl } from "@shared/routes";
-import { type InsertTournament, type InsertCategory } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-// === Tournaments ===
 export function useTournaments() {
   return useQuery({
-    queryKey: [api.tournaments.list.path],
+    queryKey: ["/api/tournaments"],
     queryFn: async () => {
-      const res = await fetch(api.tournaments.list.path);
-      if (!res.ok) throw new Error("Failed to fetch tournaments");
-      return api.tournaments.list.responses[200].parse(await res.json());
+      const res = await fetch("/api/tournaments");
+      if (!res.ok) throw new Error("Falha ao buscar torneios");
+      return await res.json();
     },
   });
 }
 
 export function useTournament(id: number) {
   return useQuery({
-    queryKey: [api.tournaments.get.path, id],
+    queryKey: ["/api/tournaments", id],
     queryFn: async () => {
-      const url = buildUrl(api.tournaments.get.path, { id });
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Failed to fetch tournament");
-      return api.tournaments.get.responses[200].parse(await res.json());
+      const res = await fetch(`/api/tournaments/${id}`);
+      if (!res.ok) throw new Error("Torneio não encontrado");
+      return await res.json();
     },
     enabled: !!id,
   });
@@ -31,27 +28,17 @@ export function useTournament(id: number) {
 export function useCreateTournament() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-
   return useMutation({
-    mutationFn: async (data: InsertTournament) => {
-      const res = await fetch(api.tournaments.create.path, {
-        method: api.tournaments.create.method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-        credentials: "include",
-      });
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "Failed to create tournament");
-      }
-      return api.tournaments.create.responses[201].parse(await res.json());
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/tournaments", data);
+      return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.tournaments.list.path] });
-      toast({ title: "Tournament Created", description: "New tournament is ready for setup." });
+      queryClient.invalidateQueries({ queryKey: ["/api/tournaments"] });
+      toast({ title: "Torneio criado", description: "Torneio criado com sucesso!" });
     },
-    onError: (err) => {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+    onError: (err: any) => {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });
 }
@@ -59,29 +46,24 @@ export function useCreateTournament() {
 export function useDeleteTournament() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-
   return useMutation({
     mutationFn: async (id: number) => {
-      const url = buildUrl(api.tournaments.delete.path, { id });
-      const res = await fetch(url, { method: api.tournaments.delete.method, credentials: "include" });
-      if (!res.ok) throw new Error("Failed to delete tournament");
+      await apiRequest("DELETE", `/api/tournaments/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [api.tournaments.list.path] });
-      toast({ title: "Deleted", description: "Tournament has been removed." });
+      queryClient.invalidateQueries({ queryKey: ["/api/tournaments"] });
+      toast({ title: "Removido", description: "Torneio removido com sucesso." });
     },
   });
 }
 
-// === Categories ===
 export function useCategories(tournamentId: number) {
   return useQuery({
-    queryKey: [api.categories.list.path, tournamentId],
+    queryKey: ["/api/tournaments", tournamentId, "categories"],
     queryFn: async () => {
-      const url = buildUrl(api.categories.list.path, { id: tournamentId });
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Failed to fetch categories");
-      return api.categories.list.responses[200].parse(await res.json());
+      const res = await fetch(`/api/tournaments/${tournamentId}/categories`);
+      if (!res.ok) throw new Error("Falha ao buscar categorias");
+      return await res.json();
     },
     enabled: !!tournamentId,
   });
@@ -90,24 +72,41 @@ export function useCategories(tournamentId: number) {
 export function useCreateCategory() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-
   return useMutation({
-    mutationFn: async (data: InsertCategory) => {
-      const res = await fetch(api.categories.create.path, {
-        method: api.categories.create.method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error("Failed to create category");
-      return api.categories.create.responses[201].parse(await res.json());
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/categories", data);
+      return await res.json();
     },
-    onSuccess: (data) => {
-      // Invalidate the specific tournament's category list
-      queryClient.invalidateQueries({ 
-        queryKey: [api.categories.list.path, data.tournamentId] 
-      });
-      toast({ title: "Category Added", description: `${data.name} created successfully.` });
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tournaments", data.tournamentId, "categories"] });
+      toast({ title: "Categoria criada", description: `${data.name} adicionada.` });
+    },
+  });
+}
+
+export function useAthletes(tournamentId: number) {
+  return useQuery({
+    queryKey: ["/api/tournaments", tournamentId, "athletes"],
+    queryFn: async () => {
+      const res = await fetch(`/api/tournaments/${tournamentId}/athletes`);
+      if (!res.ok) throw new Error("Falha ao buscar atletas");
+      return await res.json();
+    },
+    enabled: !!tournamentId,
+  });
+}
+
+export function useCreateAthlete() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/athletes", data);
+      return await res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tournaments", data.tournamentId, "athletes"] });
+      toast({ title: "Atleta cadastrado", description: `${data.name} adicionado.` });
     },
   });
 }

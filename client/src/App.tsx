@@ -7,7 +7,8 @@ import { AuthProvider } from "@/hooks/use-auth";
 import NotFound from "@/pages/not-found";
 
 import HomePage from "@/pages/home";
-import AuthPage from "@/pages/auth";
+import LoginPage from "@/pages/login";
+import AthleteAccessPage from "@/pages/athlete-access";
 import AdminPage from "@/pages/admin";
 import TournamentDetailsPage from "@/pages/tournament-details";
 
@@ -15,17 +16,12 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={HomePage} />
-      <Route path="/login" component={AuthPage} />
-      <Route path="/register" component={AuthPage} />
-      
-      {/* Public Tournament View */}
-      <Route path="/tournaments" component={HomePage} />
-      <Route path="/tournaments/:id" component={TournamentDetailsPage} />
-      
-      {/* Protected Admin Routes - Logic inside component */}
+      <Route path="/login" component={LoginPage} />
+      <Route path="/atleta" component={AthleteAccessPage} />
+      <Route path="/torneio/:id" component={TournamentDetailsPage} />
       <Route path="/admin" component={AdminPage} />
-      <Route path="/admin/tournaments/:id" component={AdminPage} />
-
+      <Route path="/admin/torneio/:id" component={AdminPage} />
+      <Route path="/admin/organizadores" component={AdminPage} />
       <Route component={NotFound} />
     </Switch>
   );
