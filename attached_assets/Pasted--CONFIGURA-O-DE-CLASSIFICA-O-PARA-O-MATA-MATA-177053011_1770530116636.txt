@@ -1,0 +1,77 @@
+====================================================
+CONFIGURAÇÃO DE CLASSIFICAÇÃO PARA O MATA-MATA
+====================================================
+
+Antes de gerar o mata-mata, o sistema deve exibir duas opções:
+
+1) Quantas duplas classificam por chave?
+2) Quantas equipes classificam por índice?
+
+====================================================
+1) CLASSIFICADOS POR CHAVE
+====================================================
+
+Opções:
+- 1 dupla
+- 2 duplas
+- 3 duplas
+- 4 duplas (se a chave comportar)
+
+Funcionamento:
+- Organizador seleciona a quantidade.
+- Sistema salva essa configuração no torneio.
+- Após finalizar fase de grupos, sistema seleciona automaticamente
+  os X melhores de cada chave.
+
+====================================================
+2) CLASSIFICAÇÃO POR ÍNDICE (MELHORES GERAIS)
+====================================================
+
+Opções:
+- Nenhuma
+- 1 equipe
+- 2 equipes
+- 4 equipes
+- Quantidade personalizada
+
+Essas equipes são escolhidas entre as NÃO classificadas diretamente.
+
+====================================================
+CRITÉRIOS DE ÍNDICE (ORDEM)
+====================================================
+
+1) Maior número de vitórias
+2) Maior saldo de sets
+3) Maior saldo de pontos
+4) Pontos marcados
+5) Sorteio automático
+
+====================================================
+PROCESSO AUTOMÁTICO
+====================================================
+
+Após fase de grupos:
+
+1) Classificar cada chave.
+2) Selecionar classificados por chave.
+3) Listar não classificados.
+4) Ordenar por critérios de índice.
+5) Selecionar quantidade definida.
+6) Juntar todos os classificados.
+7) Gerar mata-mata automaticamente.
+
+====================================================
+VALIDAÇÕES
+====================================================
+
+- Não permitir valores maiores que o possível.
+- Exibir prévia dos classificados antes de confirmar.
+
+====================================================
+ENTREGA
+====================================================
+
+Sistema flexível,
+classificação por chave e por índice,
+mata-mata gerado automaticamente,
+sem ajustes manuais.

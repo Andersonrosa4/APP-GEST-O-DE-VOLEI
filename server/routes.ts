@@ -654,7 +654,10 @@ export async function registerRoutes(
     return 0;
   }
 
-  // Olympic crossover: A1vD2, D1vA2, C1vB2, B1vC2
+  // Olympic crossover: ensures same-group teams are on OPPOSITE sides of bracket
+  // QF1: A1vD2 → Semi1  |  QF2: B1vC2 → Semi1
+  // QF3: C1vB2 → Semi2  |  QF4: D1vA2 → Semi2
+  // This guarantees same-group teams can only meet in the FINAL
   function generateOlympicCrossover(
     qualified: { team: Team; position: number; group: string }[],
     groupNames: string[]
@@ -672,17 +675,17 @@ export async function registerRoutes(
 
     if (byGroup[A]?.first && byGroup[D]?.second)
       pairings.push({ team1: byGroup[A].first, team2: byGroup[D].second });
-    if (byGroup[D]?.first && byGroup[A]?.second)
-      pairings.push({ team1: byGroup[D].first, team2: byGroup[A].second });
-    if (byGroup[C]?.first && byGroup[B]?.second)
-      pairings.push({ team1: byGroup[C].first, team2: byGroup[B].second });
     if (byGroup[B]?.first && byGroup[C]?.second)
       pairings.push({ team1: byGroup[B].first, team2: byGroup[C].second });
+    if (byGroup[C]?.first && byGroup[B]?.second)
+      pairings.push({ team1: byGroup[C].first, team2: byGroup[B].second });
+    if (byGroup[D]?.first && byGroup[A]?.second)
+      pairings.push({ team1: byGroup[D].first, team2: byGroup[A].second });
 
     return pairings;
   }
 
-  // Smart bracket: avoid same group in quarters/semis
+  // Smart bracket: avoid same group in quarters AND semis
   function generateSmartBracket(
     qualified: { team: Team; position: number; group: string }[]
   ): { team1: Team; team2: Team }[] {
@@ -721,31 +724,56 @@ export async function registerRoutes(
       pairings.push({ team1: remaining[i].team, team2: remaining[i + 1].team });
     }
 
-    return validateBracketNoSameGroupSemis(pairings, qualified) || pairings;
+    return fixBracketSameGroupSemis(pairings, qualified);
   }
 
-  function validateBracketNoSameGroupSemis(
+  // Ensure adjacent pairs (which feed into the same semifinal) don't have
+  // teams from the same group. Try all permutations of pair ordering to find
+  // a valid arrangement where same-group teams can only meet in the final.
+  function fixBracketSameGroupSemis(
     pairings: { team1: Team; team2: Team }[],
     qualified: { team: Team; position: number; group: string }[]
-  ): { team1: Team; team2: Team }[] | null {
+  ): { team1: Team; team2: Team }[] {
     if (pairings.length < 4) return pairings;
 
     const getGroup = (teamId: number) => qualified.find(q => q.team.id === teamId)?.group;
 
-    for (let i = 0; i < pairings.length - 1; i += 2) {
-      const g1a = getGroup(pairings[i].team1.id);
-      const g1b = getGroup(pairings[i].team2.id);
-      const g2a = getGroup(pairings[i + 1].team1.id);
-      const g2b = getGroup(pairings[i + 1].team2.id);
-
-      const semiGroups = [g1a, g1b, g2a, g2b];
-      const uniqueGroups = new Set(semiGroups.filter(Boolean));
-      if (uniqueGroups.size < semiGroups.filter(Boolean).length) {
-        return null;
+    const isValidOrder = (ordered: { team1: Team; team2: Team }[]) => {
+      for (let i = 0; i < ordered.length - 1; i += 2) {
+        const groups = [
+          getGroup(ordered[i].team1.id),
+          getGroup(ordered[i].team2.id),
+          getGroup(ordered[i + 1].team1.id),
+          getGroup(ordered[i + 1].team2.id),
+        ].filter(Boolean);
+        if (new Set(groups).size < groups.length) return false;
       }
+      return true;
+    };
+
+    if (isValidOrder(pairings)) return pairings;
+
+    // Try all permutations of pairings order
+    const indices = pairings.map((_, i) => i);
+    const permutations = getPermutations(indices);
+    for (const perm of permutations) {
+      const reordered = perm.map(i => pairings[i]);
+      if (isValidOrder(reordered)) return reordered;
     }
 
     return pairings;
+  }
+
+  function getPermutations(arr: number[]): number[][] {
+    if (arr.length <= 1) return [arr];
+    const result: number[][] = [];
+    for (let i = 0; i < arr.length; i++) {
+      const rest = [...arr.slice(0, i), ...arr.slice(i + 1)];
+      for (const perm of getPermutations(rest)) {
+        result.push([arr[i], ...perm]);
+      }
+    }
+    return result;
   }
 
   // Helper: Recalculate group stats from all group matches
