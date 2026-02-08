@@ -32,24 +32,24 @@ export function MatchCard({ match, team1, team2 }: MatchCardProps) {
   return (
     <div className={cn(
       "relative rounded-md border p-4 shadow-sm transition-all bg-card",
-      isLive && "ring-2 ring-red-400 border-red-200"
+      isLive && "ring-2 ring-red-400 border-red-200 shadow-red-100/50 shadow-md"
     )} data-testid={`card-match-${match.id}`}>
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium flex-wrap">
           {match.matchNumber && (
-            <span className="bg-primary text-primary-foreground px-2 py-0.5 rounded-md font-bold" data-testid={`badge-match-number-${match.id}`}>
+            <span className="bg-primary text-primary-foreground px-2.5 py-0.5 rounded-md font-bold shadow-sm" data-testid={`badge-match-number-${match.id}`}>
               Jogo {match.matchNumber}
             </span>
           )}
           <span className="bg-muted px-2 py-0.5 rounded-md">Quadra {match.courtNumber}</span>
           {match.stage === "grupo" && match.roundNumber && (
-            <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-md">R{match.roundNumber}</span>
+            <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-md font-semibold">R{match.roundNumber}</span>
           )}
-          {match.stage !== "grupo" && <span>{stageLabels[match.stage] || match.stage}</span>}
+          {match.stage !== "grupo" && <span className="font-semibold text-amber-600">{stageLabels[match.stage] || match.stage}</span>}
           {match.groupName && <span className="text-primary font-semibold">{match.groupName}</span>}
         </div>
         {isLive && (
-          <Badge variant="destructive" className="animate-pulse" data-testid={`badge-live-${match.id}`}>
+          <Badge variant="destructive" className="animate-pulse shadow-sm" data-testid={`badge-live-${match.id}`}>
             AO VIVO
           </Badge>
         )}
@@ -69,6 +69,7 @@ export function MatchCard({ match, team1, team2 }: MatchCardProps) {
           isWinner={match.winnerId === match.team1Id && isFinished}
           showScores={!isScheduled}
           hasSet3={(match.set3Team1 || 0) > 0 || (match.set3Team2 || 0) > 0}
+          isEmpty={!match.team1Id}
         />
         <div className="h-px bg-border" />
         <TeamScoreRow
@@ -77,31 +78,36 @@ export function MatchCard({ match, team1, team2 }: MatchCardProps) {
           isWinner={match.winnerId === match.team2Id && isFinished}
           showScores={!isScheduled}
           hasSet3={(match.set3Team1 || 0) > 0 || (match.set3Team2 || 0) > 0}
+          isEmpty={!match.team2Id}
         />
       </div>
     </div>
   );
 }
 
-function TeamScoreRow({ teamName, sets, isWinner, showScores, hasSet3 }: {
+function TeamScoreRow({ teamName, sets, isWinner, showScores, hasSet3, isEmpty }: {
   teamName: string;
   sets: number[];
   isWinner: boolean;
   showScores: boolean;
   hasSet3: boolean;
+  isEmpty?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between">
+    <div className={cn(
+      "flex items-center justify-between py-1 px-1 rounded-sm",
+      isWinner && "bg-green-50/80 dark:bg-green-950/30",
+    )}>
       <div className="flex items-center gap-2 min-w-0">
         {isWinner && <Trophy className="w-4 h-4 text-amber-500 flex-shrink-0" />}
         <span className={cn(
-          "font-semibold truncate",
-          isWinner ? "text-foreground" : "text-muted-foreground"
+          "team-name truncate",
+          isWinner ? "text-foreground" : isEmpty ? "text-muted-foreground italic font-normal" : "text-foreground",
         )}>
           {teamName}
         </span>
       </div>
-      {showScores && (
+      {showScores && !isEmpty && (
         <div className="flex gap-1.5 font-mono text-sm flex-shrink-0">
           <ScoreBox score={sets[0]} />
           <ScoreBox score={sets[1]} />
@@ -115,8 +121,8 @@ function TeamScoreRow({ teamName, sets, isWinner, showScores, hasSet3 }: {
 function ScoreBox({ score }: { score: number }) {
   return (
     <div className={cn(
-      "w-7 h-7 flex items-center justify-center rounded-md bg-muted text-muted-foreground text-xs font-bold",
-      score >= 21 && "bg-primary/10 text-primary"
+      "w-7 h-7 flex items-center justify-center rounded-md text-xs font-bold",
+      score >= 21 ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
     )}>
       {score}
     </div>

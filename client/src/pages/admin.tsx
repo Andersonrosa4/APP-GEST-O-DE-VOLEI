@@ -67,8 +67,8 @@ function AdminDashboard() {
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold" data-testid="text-admin-title">Painel Administrativo</h1>
-          <p className="text-muted-foreground">Gerencie seus torneios e campeonatos.</p>
+          <h1 className="section-title" data-testid="text-admin-title">Painel Administrativo</h1>
+          <p className="text-muted-foreground mt-1">Gerencie seus torneios e campeonatos.</p>
         </div>
         <div className="flex gap-2">
           {user?.role === "admin" && (
@@ -314,7 +314,7 @@ function AdminTournamentDetail() {
         <div className="flex items-center gap-3">
           <Link href="/admin"><Button variant="ghost" size="icon"><ArrowLeft className="w-4 h-4" /></Button></Link>
           <div>
-            <h1 className="text-2xl font-bold" data-testid="text-tournament-title">{currentTournament.name}</h1>
+            <h1 className="section-title text-2xl" data-testid="text-tournament-title">{currentTournament.name}</h1>
             <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
               <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{currentTournament.location}</span>
               <Badge variant="outline">{statusLabels[currentTournament.status]}</Badge>
@@ -412,7 +412,7 @@ function CategoriesTab({ tournamentId, categories, loading, open, setOpen }: any
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold">Categorias</h2>
+        <h2 className="section-subtitle">Categorias</h2>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button size="sm" data-testid="button-add-category"><Plus className="w-4 h-4 mr-2" /> Nova Categoria</Button>
@@ -473,7 +473,7 @@ function TeamsAndGroupsTab({ tournamentId, categories, selectedCategoryId, onSel
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-lg font-bold">Duplas & Chaves</h2>
+        <h2 className="section-subtitle">Duplas & Chaves</h2>
         <div className="w-[200px]">
           <Select value={selectedCategoryId?.toString()} onValueChange={(v) => onSelectCategory(Number(v))}>
             <SelectTrigger data-testid="select-category"><SelectValue placeholder="Selecionar categoria" /></SelectTrigger>
@@ -747,7 +747,7 @@ function MatchesTab({ tournamentId, categories, selectedCategoryId, onSelectCate
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-lg font-bold">Jogos & Placar</h2>
+        <h2 className="section-subtitle">Jogos & Placar</h2>
         <div className="w-[200px]">
           <Select value={selectedCategoryId?.toString()} onValueChange={(v) => onSelectCategory(Number(v))}>
             <SelectTrigger data-testid="select-match-category"><SelectValue placeholder="Selecionar categoria" /></SelectTrigger>
@@ -848,7 +848,7 @@ function CategoryMatchesManager({ categoryId }: { categoryId: number }) {
                       {groupTeams.map((t: Team, idx: number) => (
                         <tr key={t.id} className={`border-t ${idx < 2 ? "bg-green-50/50 dark:bg-green-950/20" : ""}`}>
                           <td className="p-2 text-muted-foreground font-bold">{idx + 1}</td>
-                          <td className="p-2 font-medium">{t.name}</td>
+                          <td className="p-2 team-name text-sm">{t.name}</td>
                           <td className="p-2 text-center text-green-600 font-semibold">{t.groupWins || 0}</td>
                           <td className="p-2 text-center text-red-500">{t.groupLosses || 0}</td>
                           <td className="p-2 text-center">{(t.pointsScored || 0) - (t.pointsConceded || 0)}</td>
@@ -905,9 +905,9 @@ function CategoryMatchesManager({ categoryId }: { categoryId: number }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm truncate">{t1?.name || "A definir"}</span>
-                    <span className="text-muted-foreground text-xs">vs</span>
-                    <span className="font-semibold text-sm truncate">{t2?.name || "A definir"}</span>
+                    <span className="team-name text-sm truncate">{t1?.name || "A definir"}</span>
+                    <span className="text-muted-foreground text-xs font-medium">vs</span>
+                    <span className="team-name text-sm truncate">{t2?.name || "A definir"}</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
                     {m.groupName && <span className="text-primary font-medium">{m.groupName}</span>}
@@ -1156,13 +1156,13 @@ function ScoreEditor({ match, team1, team2, onSave }: { match: Match; team1?: Te
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 text-center">
-        <div className="p-3 bg-muted/50 rounded-md">
-          <div className="font-bold text-sm truncate" data-testid="text-score-team1">{team1?.name || "A definir"}</div>
-          <div className="text-2xl font-bold mt-1 text-primary">{t1SetsWon}</div>
+        <div className="p-4 bg-muted/50 rounded-md">
+          <div className="team-name-lg text-sm truncate" data-testid="text-score-team1">{team1?.name || "A definir"}</div>
+          <div className="text-3xl font-extrabold mt-1 text-primary">{t1SetsWon}</div>
         </div>
-        <div className="p-3 bg-muted/50 rounded-md">
-          <div className="font-bold text-sm truncate" data-testid="text-score-team2">{team2?.name || "A definir"}</div>
-          <div className="text-2xl font-bold mt-1 text-primary">{t2SetsWon}</div>
+        <div className="p-4 bg-muted/50 rounded-md">
+          <div className="team-name-lg text-sm truncate" data-testid="text-score-team2">{team2?.name || "A definir"}</div>
+          <div className="text-3xl font-extrabold mt-1 text-primary">{t2SetsWon}</div>
         </div>
       </div>
 
@@ -1291,7 +1291,7 @@ function SequenceTab({ tournamentId, categories, selectedCategoryId, onSelectCat
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-lg font-bold">Sequencia de Jogos</h2>
+        <h2 className="section-subtitle">Sequencia de Jogos</h2>
         <div className="w-[200px]">
           <Select value={selectedCategoryId?.toString()} onValueChange={(v) => onSelectCategory(Number(v))}>
             <SelectTrigger data-testid="select-sequence-category"><SelectValue placeholder="Selecionar categoria" /></SelectTrigger>
@@ -1369,9 +1369,9 @@ function CategorySequenceView({ categoryId }: { categoryId: number }) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-sm">{teams?.find((t: Team) => t.id === nextMatch.team1Id)?.name || "A definir"}</span>
-                  <span className="text-muted-foreground text-xs">vs</span>
-                  <span className="font-semibold text-sm">{teams?.find((t: Team) => t.id === nextMatch.team2Id)?.name || "A definir"}</span>
+                  <span className="team-name text-sm">{teams?.find((t: Team) => t.id === nextMatch.team1Id)?.name || "A definir"}</span>
+                  <span className="text-muted-foreground text-xs font-medium">vs</span>
+                  <span className="team-name text-sm">{teams?.find((t: Team) => t.id === nextMatch.team2Id)?.name || "A definir"}</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
                   {nextMatch.groupName && <span className="text-primary font-medium">{nextMatch.groupName}</span>}
@@ -1412,9 +1412,9 @@ function CategorySequenceView({ categoryId }: { categoryId: number }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-semibold text-sm truncate">{t1?.name || "A definir"}</span>
-                    <span className="text-muted-foreground text-xs">vs</span>
-                    <span className="font-semibold text-sm truncate">{t2?.name || "A definir"}</span>
+                    <span className="team-name text-sm truncate">{t1?.name || "A definir"}</span>
+                    <span className="text-muted-foreground text-xs font-medium">vs</span>
+                    <span className="team-name text-sm truncate">{t2?.name || "A definir"}</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
                     {m.groupName && <span className="text-primary font-medium">{m.groupName}</span>}

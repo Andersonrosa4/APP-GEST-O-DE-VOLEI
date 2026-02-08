@@ -34,18 +34,19 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-hero-gradient flex items-center justify-center p-4 relative overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20" />
       <div className="absolute top-0 right-0 w-96 h-96 bg-sky-400/10 rounded-full blur-3xl" />
       <div className="absolute bottom-0 left-0 w-72 h-72 bg-amber-400/10 rounded-full blur-3xl" />
       <Card className="w-full max-w-md relative z-10 shadow-2xl">
-        <CardHeader className="text-center space-y-3 pb-2">
+        <CardHeader className="text-center space-y-4 pb-2">
           <div className="mx-auto w-16 h-16 bg-ocean-gradient rounded-full flex items-center justify-center shadow-lg">
             <Waves className="w-8 h-8 text-white" />
           </div>
-          <CardTitle className="text-2xl">Volei de Praia</CardTitle>
+          <CardTitle className="text-2xl" style={{ fontFamily: 'var(--font-display)' }}>Volei de Praia</CardTitle>
           <p className="text-muted-foreground text-sm">Acesse o painel administrativo</p>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
               <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-md font-medium" data-testid="text-login-error">
                 {error}

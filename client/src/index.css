@@ -76,6 +76,28 @@
   .glass-card {
     @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-xl shadow-black/5;
   }
+
+  .team-name {
+    @apply font-bold text-foreground;
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+
+  .team-name-lg {
+    @apply font-extrabold text-foreground text-base;
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+
+  .section-title {
+    @apply text-2xl font-extrabold tracking-tight;
+    font-family: var(--font-display);
+  }
+
+  .section-subtitle {
+    @apply text-lg font-bold tracking-tight;
+    font-family: var(--font-display);
+  }
 }
 
 .fade-in {
@@ -93,4 +115,11 @@
 .card-hover:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 25px -5px rgba(0,0,0,0.08), 0 4px 10px -6px rgba(0,0,0,0.05);
+}
+
+.match-row {
+  transition: background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.match-row:hover {
+  box-shadow: 0 2px 8px -2px rgba(0,0,0,0.08);
 }

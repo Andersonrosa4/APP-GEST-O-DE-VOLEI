@@ -50,7 +50,8 @@ export default function TournamentDetailsPage() {
 
   return (
     <LayoutShell>
-      <div className="bg-hero-gradient text-white py-14 relative overflow-hidden">
+      <div className="bg-hero-gradient text-white py-16 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20" />
         <div className="absolute top-0 right-0 w-96 h-96 bg-sky-400/10 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-72 h-72 bg-amber-400/10 rounded-full blur-3xl" />
         <div className="max-w-6xl mx-auto px-4 relative z-10">
@@ -87,7 +88,7 @@ export default function TournamentDetailsPage() {
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-          <h2 className="text-xl font-bold" data-testid="text-competition-title">Competicao</h2>
+          <h2 className="section-title text-xl" data-testid="text-competition-title">Competicao</h2>
           {categories && categories.length > 0 && (
             <div className="w-[200px]">
               <Select value={activeCategoryId?.toString()} onValueChange={setSelectedCategoryId}>
@@ -160,7 +161,7 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              <h3 className="font-bold text-lg">Ao Vivo</h3>
+              <h3 className="section-subtitle">Ao Vivo</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {liveMatches.map((m: Match) => (
@@ -179,7 +180,7 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
             <>
               {groupSorted.length > 0 && (
                 <div className="space-y-3">
-                  <h3 className="font-bold text-lg flex items-center gap-2" data-testid="text-sequence-group-title">
+                  <h3 className="section-subtitle flex items-center gap-2" data-testid="text-sequence-group-title">
                     <Swords className="w-5 h-5 text-primary" /> Fase de Grupos - Sequencia de Jogos
                   </h3>
                   <div className="space-y-2">
@@ -189,15 +190,15 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
                       const isFinished = m.status === "finalizado";
                       const isLive = m.status === "em_andamento";
                       return (
-                        <div key={m.id} className={`flex items-center gap-3 p-3 rounded-md border bg-card ${isLive ? "ring-2 ring-red-400 border-red-200" : ""} ${isFinished ? "opacity-70" : ""}`} data-testid={`row-sequence-${m.id}`}>
-                          <div className="w-10 h-10 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm flex-shrink-0" data-testid={`text-seq-number-${m.id}`}>
-                            {m.matchNumber || "—"}
+                        <div key={m.id} className={`match-row flex items-center gap-3 p-3 rounded-md border bg-card ${isLive ? "ring-2 ring-red-400 border-red-200 shadow-md" : ""} ${isFinished ? "opacity-70" : ""}`} data-testid={`row-sequence-${m.id}`}>
+                          <div className="w-10 h-10 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-sm" data-testid={`text-seq-number-${m.id}`}>
+                            {m.matchNumber || "---"}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-semibold text-sm truncate">{t1?.name || "A definir"}</span>
-                              <span className="text-muted-foreground text-xs">vs</span>
-                              <span className="font-semibold text-sm truncate">{t2?.name || "A definir"}</span>
+                              <span className="team-name text-sm truncate">{t1?.name || "A definir"}</span>
+                              <span className="text-muted-foreground text-xs font-medium">vs</span>
+                              <span className="team-name text-sm truncate">{t2?.name || "A definir"}</span>
                             </div>
                             <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
                               {m.groupName && <span className="text-primary font-medium">{m.groupName}</span>}
@@ -226,7 +227,7 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
 
               {bracketSorted.length > 0 && (
                 <div className="space-y-3">
-                  <h3 className="font-bold text-lg flex items-center gap-2">
+                  <h3 className="section-subtitle flex items-center gap-2">
                     <Trophy className="w-5 h-5 text-amber-500" /> Fase Eliminatoria
                   </h3>
                   <div className="space-y-2">
@@ -236,15 +237,15 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
                       const isFinished = m.status === "finalizado";
                       const isLive = m.status === "em_andamento";
                       return (
-                        <div key={m.id} className={`flex items-center gap-3 p-3 rounded-md border bg-card ${isLive ? "ring-2 ring-red-400 border-red-200" : ""} ${isFinished ? "opacity-70" : ""}`} data-testid={`row-sequence-${m.id}`}>
-                          <div className="w-10 h-10 rounded-md bg-amber-500 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
-                            {m.matchNumber || "—"}
+                        <div key={m.id} className={`match-row flex items-center gap-3 p-3 rounded-md border bg-card ${isLive ? "ring-2 ring-red-400 border-red-200 shadow-md" : ""} ${isFinished ? "opacity-70" : ""}`} data-testid={`row-sequence-${m.id}`}>
+                          <div className="w-10 h-10 rounded-md bg-amber-500 text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-sm">
+                            {m.matchNumber || "---"}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-semibold text-sm truncate">{t1?.name || "A definir"}</span>
-                              <span className="text-muted-foreground text-xs">vs</span>
-                              <span className="font-semibold text-sm truncate">{t2?.name || "A definir"}</span>
+                              <span className="team-name text-sm truncate">{t1?.name || "A definir"}</span>
+                              <span className="text-muted-foreground text-xs font-medium">vs</span>
+                              <span className="team-name text-sm truncate">{t2?.name || "A definir"}</span>
                             </div>
                             <div className="text-xs text-muted-foreground mt-0.5">
                               {stageLabels[m.stage] || m.stage} - Quadra {m.courtNumber}
@@ -292,7 +293,7 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              <h3 className="font-bold text-lg" data-testid="text-live-title">Ao Vivo</h3>
+              <h3 className="section-subtitle" data-testid="text-live-title">Ao Vivo</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {liveMatches.map((m: Match) => (
@@ -306,7 +307,7 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-muted-foreground" />
-              <h3 className="font-bold text-lg">Proximos Jogos</h3>
+              <h3 className="section-subtitle">Proximos Jogos</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {nextMatches.map((m: Match) => (
@@ -318,12 +319,12 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
 
         {roundNumbers.length > 0 && (
           <div className="space-y-6">
-            <h3 className="font-bold text-lg flex items-center gap-2">
+            <h3 className="section-subtitle flex items-center gap-2">
               <Swords className="w-5 h-5 text-primary" /> Fase de Grupos
             </h3>
             {roundNumbers.map(roundNum => (
               <div key={roundNum}>
-                <h4 className="font-semibold mb-3 text-primary" data-testid={`text-public-round-${roundNum}`}>Rodada {roundNum}</h4>
+                <h4 className="font-bold mb-3 text-primary" style={{ fontFamily: 'var(--font-display)' }} data-testid={`text-public-round-${roundNum}`}>Rodada {roundNum}</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {roundMap[roundNum].map((m: Match) => (
                     <MatchCard key={m.id} match={m} team1={teams?.find((t: Team) => t.id === m.team1Id)} team2={teams?.find((t: Team) => t.id === m.team2Id)} />
@@ -336,7 +337,7 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
 
         {bracketMatches.length > 0 && (
           <div className="space-y-4">
-            <h3 className="font-bold text-lg flex items-center gap-2">
+            <h3 className="section-subtitle flex items-center gap-2">
               <Trophy className="w-5 h-5 text-amber-500" /> Fase Eliminatoria
             </h3>
             {["quartas", "semifinal", "terceiro", "final"].map(stage => {
@@ -344,7 +345,7 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
               if (stageMatches.length === 0) return null;
               return (
                 <div key={stage}>
-                  <h4 className="font-semibold mb-3 text-primary">{stageLabels[stage]}</h4>
+                  <h4 className="font-bold mb-3 text-primary" style={{ fontFamily: 'var(--font-display)' }}>{stageLabels[stage]}</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {stageMatches.map((m: Match) => (
                       <MatchCard key={m.id} match={m} team1={teams?.find((t: Team) => t.id === m.team1Id)} team2={teams?.find((t: Team) => t.id === m.team2Id)} />
@@ -394,7 +395,7 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
                       {groupTeams.map((t: Team, idx: number) => (
                         <tr key={t.id} className={`border-t ${idx < 2 ? "bg-green-50/50 dark:bg-green-950/20" : ""}`} data-testid={`row-standing-${t.id}`}>
                           <td className="p-2 font-bold text-muted-foreground">{idx + 1}</td>
-                          <td className="p-2 font-medium">{t.name}</td>
+                          <td className="p-2 team-name text-sm">{t.name}</td>
                           <td className="p-2 text-center text-green-600 font-semibold">{t.groupWins || 0}</td>
                           <td className="p-2 text-center text-red-500">{t.groupLosses || 0}</td>
                           <td className="p-2 text-center text-muted-foreground">{t.setsWon || 0}/{t.setsLost || 0}</td>
@@ -416,9 +417,9 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {teams?.map((t: Team) => (
             <Card key={t.id} className="card-hover" data-testid={`card-team-${t.id}`}>
-              <CardContent className="p-4">
-                <div className="font-bold text-base">{t.name}</div>
-                <div className="flex gap-2 mt-2 flex-wrap">
+              <CardContent className="p-5">
+                <div className="team-name-lg">{t.name}</div>
+                <div className="flex gap-2 mt-3 flex-wrap">
                   {t.seed && <Badge variant="secondary" className="text-xs">Cab. {t.seed}</Badge>}
                   {t.groupName && <Badge variant="outline" className="text-xs">{t.groupName}</Badge>}
                   {(t.groupWins || 0) > 0 && (

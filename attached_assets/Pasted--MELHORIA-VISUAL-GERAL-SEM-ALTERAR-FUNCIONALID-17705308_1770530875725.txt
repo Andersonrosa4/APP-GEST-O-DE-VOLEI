@@ -1,0 +1,76 @@
+====================================================
+MELHORIA VISUAL GERAL (SEM ALTERAR FUNCIONALIDADES)
+====================================================
+
+REGRA ABSOLUTA:
+Não alterar nenhuma regra de negócio.
+Não alterar nenhuma lógica.
+Não alterar banco de dados.
+Não alterar fluxos existentes.
+Somente alterar aparência visual.
+
+====================================================
+OBJETIVO
+====================================================
+
+Melhorar bastante o layout do sistema para:
+
+- Ficar mais bonito
+- Mais profissional
+- Mais fácil de entender
+- Mais intuitivo para quem nunca usou
+
+====================================================
+BOTÕES
+====================================================
+
+- Aumentar contraste
+- Usar cores fortes
+- Bordas arredondadas
+- Sombras
+- Animação hover
+- Leve aumento de tamanho ao passar mouse
+- Cursor pointer
+
+====================================================
+TEXTOS E TÍTULOS
+====================================================
+
+- Títulos grandes e em negrito
+- Subtítulos médios
+- Textos com bom contraste
+- Espaçamento entre blocos
+- Hierarquia visual clara
+
+====================================================
+CORES
+====================================================
+
+- Separar seções por cores suaves
+- Fundo claro
+- Texto escuro
+- Ações principais em cor forte
+
+====================================================
+LAYOUT
+====================================================
+
+- Cards com sombra
+- Espaçamento consistente
+- Organização em grid
+- Separação visual clara entre blocos
+
+====================================================
+RESPONSIVIDADE
+====================================================
+
+- Garantir boa aparência no celular e no computador
+
+====================================================
+ENTREGA
+====================================================
+
+Sistema visualmente mais bonito,
+mais organizado,
+mais fácil de entender,
+sem mudar nenhuma funcionalidade existente.

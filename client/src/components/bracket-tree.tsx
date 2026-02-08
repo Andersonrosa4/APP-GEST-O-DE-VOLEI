@@ -1,6 +1,6 @@
 import { Match, Team } from "@shared/schema";
 import { cn } from "@/lib/utils";
-import { Trophy, Crown } from "lucide-react";
+import { Trophy, Crown, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface BracketTreeProps {
@@ -17,18 +17,22 @@ export function ChampionBanner({ matches, teams }: { matches: Match[]; teams: Te
   if (!champion) return null;
 
   return (
-    <div className="relative overflow-visible rounded-md border-2 border-amber-400 bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50 dark:from-amber-950/40 dark:via-yellow-950/40 dark:to-amber-950/40 p-6 text-center" data-testid="champion-banner">
-      <div className="flex items-center justify-center gap-2 mb-2">
-        <Crown className="w-8 h-8 text-amber-500" />
-        <Trophy className="w-6 h-6 text-amber-500" />
+    <div className="relative overflow-visible rounded-md border-2 border-amber-400 bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50 dark:from-amber-950/40 dark:via-yellow-950/40 dark:to-amber-950/40 p-8 text-center shadow-lg shadow-amber-100/50" data-testid="champion-banner">
+      <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-white text-xs font-bold px-4 py-1 rounded-full shadow-sm uppercase tracking-wider">
+        Campeao
       </div>
-      <div className="text-xs font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-1">
+      <div className="flex items-center justify-center gap-3 mb-3 mt-1">
+        <Crown className="w-8 h-8 text-amber-500" />
+        <Star className="w-5 h-5 text-amber-400" />
+        <Trophy className="w-7 h-7 text-amber-500" />
+      </div>
+      <div className="text-xs font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-2">
         Campeao do Torneio
       </div>
-      <div className="text-2xl font-black text-amber-700 dark:text-amber-300" data-testid="text-champion-name">
+      <div className="text-3xl font-black text-amber-700 dark:text-amber-300 team-name-lg" style={{ fontSize: '1.75rem' }} data-testid="text-champion-name">
         {champion.name}
       </div>
-      <div className="text-xs text-muted-foreground mt-2">
+      <div className="text-sm text-amber-600/70 mt-3 font-mono font-bold">
         {finalMatch.set1Team1}-{finalMatch.set1Team2} / {finalMatch.set2Team1}-{finalMatch.set2Team2}
         {((finalMatch.set3Team1 || 0) > 0 || (finalMatch.set3Team2 || 0) > 0) && <> / {finalMatch.set3Team1}-{finalMatch.set3Team2}</>}
       </div>
@@ -53,8 +57,8 @@ export function BracketTree({ matches, teams, onMatchClick }: BracketTreeProps) 
   const getTeam = (id: number | null | undefined) => teams.find(t => t.id === id);
 
   return (
-    <div className="space-y-4" data-testid="bracket-tree">
-      <h3 className="font-bold text-lg flex items-center gap-2">
+    <div className="space-y-5" data-testid="bracket-tree">
+      <h3 className="section-subtitle flex items-center gap-2">
         <Trophy className="w-5 h-5 text-amber-500" /> Chaveamento Eliminatorio
       </h3>
 
@@ -153,7 +157,7 @@ function BracketColumn({ label, stage, matches, teams, getTeam, onMatchClick, sp
   return (
     <div className="flex flex-col" data-testid={`bracket-column-${stage}`}>
       <div className="text-center mb-3">
-        <Badge variant="outline" className="text-xs font-semibold">
+        <Badge variant="outline" className="text-xs font-bold uppercase tracking-wider">
           {label}
         </Badge>
       </div>
@@ -190,16 +194,16 @@ function BracketMatchCard({ match, team1, team2, onMatchClick }: {
   return (
     <div
       className={cn(
-        "w-56 rounded-md border shadow-sm bg-card transition-all",
-        isLive && "ring-2 ring-red-400 border-red-200",
+        "w-60 rounded-md border shadow-sm bg-card transition-all",
+        isLive && "ring-2 ring-red-400 border-red-200 shadow-red-100/50 shadow-md",
         onMatchClick && "cursor-pointer hover-elevate",
       )}
       onClick={() => onMatchClick?.(match)}
       data-testid={`bracket-match-${match.id}`}
     >
-      <div className="px-3 py-1 border-b bg-muted/30 flex items-center justify-between gap-2">
+      <div className="px-3 py-1.5 border-b bg-muted/30 flex items-center justify-between gap-2">
         <span className="text-xs font-bold text-muted-foreground">
-          Jogo {match.matchNumber || "—"}
+          Jogo {match.matchNumber || "---"}
         </span>
         {isLive && (
           <Badge variant="destructive" className="animate-pulse text-[10px] px-1.5 py-0">
@@ -217,7 +221,7 @@ function BracketMatchCard({ match, team1, team2, onMatchClick }: {
           </Badge>
         )}
       </div>
-      <div className="p-1.5 space-y-0">
+      <div className="p-2 space-y-0">
         <BracketTeamRow
           name={team1?.name || "A definir"}
           sets={[match.set1Team1 || 0, match.set2Team1 || 0, match.set3Team1 || 0]}
@@ -250,15 +254,14 @@ function BracketTeamRow({ name, sets, isWinner, showScores, hasSet3, isEmpty }: 
 }) {
   return (
     <div className={cn(
-      "flex items-center justify-between px-2 py-1 rounded-sm",
+      "flex items-center justify-between px-2 py-1.5 rounded-sm",
       isWinner && "bg-green-50 dark:bg-green-950/30",
     )}>
-      <div className="flex items-center gap-1 min-w-0 flex-1">
-        {isWinner && <Trophy className="w-3 h-3 text-amber-500 flex-shrink-0" />}
+      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+        {isWinner && <Trophy className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />}
         <span className={cn(
-          "text-xs truncate",
-          isWinner ? "font-bold" : "font-medium",
-          isEmpty && "text-muted-foreground italic",
+          "text-sm truncate",
+          isWinner ? "team-name" : isEmpty ? "text-muted-foreground italic font-normal text-xs" : "team-name",
         )}>
           {name}
         </span>
@@ -266,16 +269,16 @@ function BracketTeamRow({ name, sets, isWinner, showScores, hasSet3, isEmpty }: 
       {showScores && !isEmpty && (
         <div className="flex gap-0.5 font-mono text-[10px] flex-shrink-0">
           <span className={cn(
-            "w-4 h-4 flex items-center justify-center rounded bg-muted text-muted-foreground",
+            "w-5 h-5 flex items-center justify-center rounded bg-muted text-muted-foreground",
             sets[0] > 0 && "font-bold",
           )}>{sets[0]}</span>
           <span className={cn(
-            "w-4 h-4 flex items-center justify-center rounded bg-muted text-muted-foreground",
+            "w-5 h-5 flex items-center justify-center rounded bg-muted text-muted-foreground",
             sets[1] > 0 && "font-bold",
           )}>{sets[1]}</span>
           {hasSet3 && (
             <span className={cn(
-              "w-4 h-4 flex items-center justify-center rounded bg-muted text-muted-foreground",
+              "w-5 h-5 flex items-center justify-center rounded bg-muted text-muted-foreground",
               sets[2] > 0 && "font-bold",
             )}>{sets[2]}</span>
           )}

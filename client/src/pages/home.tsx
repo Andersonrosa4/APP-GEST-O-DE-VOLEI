@@ -22,7 +22,7 @@ export default function HomePage() {
     <LayoutShell>
       <section className="bg-hero-gradient text-white relative overflow-hidden">
         <div className="absolute inset-0">
-          <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/30 to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/30 to-transparent" />
           <div className="absolute top-0 right-0 w-96 h-96 bg-sky-400/10 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-72 h-72 bg-amber-400/10 rounded-full blur-3xl" />
         </div>
@@ -65,7 +65,7 @@ export default function HomePage() {
       <section className="max-w-6xl mx-auto px-4 py-12">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-10">
           <div>
-            <h2 className="text-3xl font-extrabold tracking-tight">Torneios Disponiveis</h2>
+            <h2 className="section-title" data-testid="text-tournaments-heading">Torneios Disponiveis</h2>
             <p className="text-muted-foreground mt-1">Acompanhe os campeonatos em andamento</p>
           </div>
         </div>
@@ -83,14 +83,14 @@ export default function HomePage() {
                   <Card className="cursor-pointer card-hover group h-full" data-testid={`card-tournament-${t.id}`}>
                     <CardContent className="p-6 space-y-4">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="w-11 h-11 rounded-md bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
-                          <Trophy className="w-5 h-5" />
+                        <div className="w-12 h-12 rounded-md bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+                          <Trophy className="w-6 h-6" />
                         </div>
                         <Badge variant={status.variant} data-testid={`badge-status-${t.id}`}>
                           {status.label}
                         </Badge>
                       </div>
-                      <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors">
+                      <h3 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors" style={{ fontFamily: 'var(--font-display)' }}>
                         {t.name}
                       </h3>
                       <div className="space-y-2 text-sm text-muted-foreground">
