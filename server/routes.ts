@@ -747,14 +747,23 @@ export async function registerRoutes(
     const A = groupNames[0], B = groupNames[1], C = groupNames[2], D = groupNames[3];
     const pairings: { team1: Team; team2: Team }[] = [];
 
-    if (byGroup[A]?.first && byGroup[D]?.second)
-      pairings.push({ team1: byGroup[A].first, team2: byGroup[D].second });
-    if (byGroup[B]?.first && byGroup[C]?.second)
-      pairings.push({ team1: byGroup[B].first, team2: byGroup[C].second });
-    if (byGroup[C]?.first && byGroup[B]?.second)
-      pairings.push({ team1: byGroup[C].first, team2: byGroup[B].second });
-    if (byGroup[D]?.first && byGroup[A]?.second)
-      pairings.push({ team1: byGroup[D].first, team2: byGroup[A].second });
+    const hasSeconds = byGroup[A]?.second || byGroup[B]?.second || byGroup[C]?.second || byGroup[D]?.second;
+
+    if (hasSeconds) {
+      if (byGroup[A]?.first && byGroup[D]?.second)
+        pairings.push({ team1: byGroup[A].first, team2: byGroup[D].second });
+      if (byGroup[B]?.first && byGroup[C]?.second)
+        pairings.push({ team1: byGroup[B].first, team2: byGroup[C].second });
+      if (byGroup[C]?.first && byGroup[B]?.second)
+        pairings.push({ team1: byGroup[C].first, team2: byGroup[B].second });
+      if (byGroup[D]?.first && byGroup[A]?.second)
+        pairings.push({ team1: byGroup[D].first, team2: byGroup[A].second });
+    } else {
+      if (byGroup[A]?.first && byGroup[D]?.first)
+        pairings.push({ team1: byGroup[A].first, team2: byGroup[D].first });
+      if (byGroup[B]?.first && byGroup[C]?.first)
+        pairings.push({ team1: byGroup[B].first, team2: byGroup[C].first });
+    }
 
     return pairings;
   }
