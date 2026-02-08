@@ -1,6 +1,6 @@
 import { Match, Team } from "@shared/schema";
 import { cn } from "@/lib/utils";
-import { Trophy } from "lucide-react";
+import { Trophy, Crown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface BracketTreeProps {
@@ -9,18 +9,45 @@ interface BracketTreeProps {
   onMatchClick?: (match: Match) => void;
 }
 
+export function ChampionBanner({ matches, teams }: { matches: Match[]; teams: Team[] }) {
+  const finalMatch = matches.find(m => m.stage === "final" && m.status === "finalizado" && m.winnerId);
+  if (!finalMatch) return null;
+
+  const champion = teams.find(t => t.id === finalMatch.winnerId);
+  if (!champion) return null;
+
+  return (
+    <div className="relative overflow-visible rounded-md border-2 border-amber-400 bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50 dark:from-amber-950/40 dark:via-yellow-950/40 dark:to-amber-950/40 p-6 text-center" data-testid="champion-banner">
+      <div className="flex items-center justify-center gap-2 mb-2">
+        <Crown className="w-8 h-8 text-amber-500" />
+        <Trophy className="w-6 h-6 text-amber-500" />
+      </div>
+      <div className="text-xs font-bold uppercase tracking-widest text-amber-600 dark:text-amber-400 mb-1">
+        Campeao do Torneio
+      </div>
+      <div className="text-2xl font-black text-amber-700 dark:text-amber-300" data-testid="text-champion-name">
+        {champion.name}
+      </div>
+      <div className="text-xs text-muted-foreground mt-2">
+        {finalMatch.set1Team1}-{finalMatch.set1Team2} / {finalMatch.set2Team1}-{finalMatch.set2Team2}
+        {((finalMatch.set3Team1 || 0) > 0 || (finalMatch.set3Team2 || 0) > 0) && <> / {finalMatch.set3Team1}-{finalMatch.set3Team2}</>}
+      </div>
+    </div>
+  );
+}
+
 export function BracketTree({ matches, teams, onMatchClick }: BracketTreeProps) {
   const bracketMatches = matches.filter(m => m.stage !== "grupo");
   if (bracketMatches.length === 0) return null;
 
   const quartas = bracketMatches.filter(m => m.stage === "quartas").sort((a, b) => (a.matchNumber || 999) - (b.matchNumber || 999));
   const semis = bracketMatches.filter(m => m.stage === "semifinal").sort((a, b) => (a.matchNumber || 999) - (b.matchNumber || 999));
-  const final = bracketMatches.filter(m => m.stage === "final");
+  const finalMatches = bracketMatches.filter(m => m.stage === "final");
   const terceiro = bracketMatches.filter(m => m.stage === "terceiro");
 
   const hasQuartas = quartas.length > 0;
   const hasSemis = semis.length > 0;
-  const hasFinal = final.length > 0;
+  const hasFinal = finalMatches.length > 0;
   const hasTerceiro = terceiro.length > 0;
 
   const getTeam = (id: number | null | undefined) => teams.find(t => t.id === id);
@@ -30,6 +57,8 @@ export function BracketTree({ matches, teams, onMatchClick }: BracketTreeProps) 
       <h3 className="font-bold text-lg flex items-center gap-2">
         <Trophy className="w-5 h-5 text-amber-500" /> Chaveamento Eliminatorio
       </h3>
+
+      <ChampionBanner matches={matches} teams={teams} />
 
       <div className="overflow-x-auto pb-4">
         <div className="flex items-stretch min-w-max">
@@ -67,7 +96,7 @@ export function BracketTree({ matches, teams, onMatchClick }: BracketTreeProps) 
             <BracketColumn
               label="Final"
               stage="final"
-              matches={final}
+              matches={finalMatches}
               teams={teams}
               getTeam={getTeam}
               onMatchClick={onMatchClick}

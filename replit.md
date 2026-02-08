@@ -41,6 +41,7 @@ client/src/components/ - layout-shell.tsx, match-card.tsx, bracket-tree.tsx, ui/
 - GET/POST /api/tournaments - Tournament CRUD
 - GET/POST /api/categories - Category CRUD
 - POST /api/teams - Create team (name only)
+- PATCH /api/teams/:id - Update team name (inline editing)
 - POST /api/categories/:id/generate-teams - Auto-generate numbered teams
 - POST /api/categories/:id/draw-groups - Group draw (Sorteio de Chaves)
 - POST /api/categories/:id/generate-matches - Generate round-robin group matches
@@ -68,9 +69,11 @@ client/src/components/ - layout-shell.tsx, match-card.tsx, bracket-tree.tsx, ui/
 ## Key Features
 - **Sequencia de Jogos Tab**: Available in admin, organizer, and public/athlete views. Shows linear match sequence + visual bracket tree with SVG connector lines
 - **BracketTree Component**: Visual knockout bracket (Quartas → Semifinais → Final → 3o Lugar) with match cards connected by lines
-- **Score Editing**: Admin/Organizer can click matches to edit scores (best of 3 sets). Winner auto-detected when 2 sets won.
-- **Auto-Advance**: Winner automatically progresses to next bracket match
-- **Real-Time**: WebSocket broadcasts match updates to all connected clients
+- **Score Editing**: Admin/Organizer can click matches to edit scores (best of 3 sets). Winner auto-detected when 2 sets won. Match auto-finalized on save (no intermediate states).
+- **Auto-Advance**: Winner automatically progresses to next bracket match. Semifinal winners auto-populate final; losers auto-populate 3rd place match.
+- **Champion Display**: When final match is finalized, "Campeao do Torneio" banner appears with crown/trophy icons
+- **Inline Team Name Editing**: Click team name in admin to edit inline, Enter to save, Escape to cancel
+- **Real-Time**: WebSocket broadcasts match updates, team updates, and champion declarations to all connected clients
 
 ## User Preferences
 - All UI text must be in Portuguese

@@ -455,6 +455,18 @@ export async function registerRoutes(
     res.status(201).json(createdMatches);
   });
 
+  // === UPDATE TEAM NAME ===
+  app.patch("/api/teams/:id", requireAuth, async (req, res) => {
+    const id = Number(req.params.id);
+    const { name } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: "Nome da dupla e obrigatorio" });
+    }
+    const team = await storage.updateTeam(id, { name: name.trim(), player1Name: name.trim() });
+    broadcast({ type: "TEAM_UPDATE", payload: team });
+    res.json(team);
+  });
+
   // === UPDATE MATCH SCORE ===
   app.patch("/api/matches/:id", requireAuth, async (req, res) => {
     const id = Number(req.params.id);
@@ -474,6 +486,10 @@ export async function registerRoutes(
 
       if (fullMatch && fullMatch.stage === "semifinal") {
         await updateBracketProgression(fullMatch);
+      }
+
+      if (fullMatch && fullMatch.stage === "final") {
+        broadcast({ type: "CHAMPION_DECLARED", payload: { categoryId: fullMatch.categoryId, winnerId: updates.winnerId } });
       }
     }
 
@@ -847,10 +863,12 @@ export async function registerRoutes(
       }).filter(Boolean);
 
       if (finalMatch && winners.length === 2) {
-        await storage.updateMatch(finalMatch.id, { team1Id: winners[0], team2Id: winners[1] });
+        const updatedFinal = await storage.updateMatch(finalMatch.id, { team1Id: winners[0], team2Id: winners[1] });
+        broadcast({ type: "MATCH_UPDATE", payload: updatedFinal });
       }
       if (bronzeMatch && losers.length === 2) {
-        await storage.updateMatch(bronzeMatch.id, { team1Id: losers[0], team2Id: losers[1] });
+        const updatedBronze = await storage.updateMatch(bronzeMatch.id, { team1Id: losers[0], team2Id: losers[1] });
+        broadcast({ type: "MATCH_UPDATE", payload: updatedBronze });
       }
     }
   }

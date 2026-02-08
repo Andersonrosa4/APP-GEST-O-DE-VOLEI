@@ -154,6 +154,24 @@ export function useUpdateMatch() {
   });
 }
 
+export function useUpdateTeam() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: number; name: string }) => {
+      const res = await apiRequest("PATCH", `/api/teams/${id}`, { name });
+      return await res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories", data.categoryId, "teams"] });
+      toast({ title: "Nome atualizado", description: `Dupla renomeada para "${data.name}".` });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    },
+  });
+}
+
 export function useStandings(categoryId: number) {
   return useQuery({
     queryKey: ["/api/categories", categoryId, "standings"],
@@ -188,7 +206,11 @@ export function useLiveMatchUpdates(categoryId?: number) {
             queryClient.invalidateQueries({ queryKey: ["/api/categories", match.categoryId, "standings"] });
           }
         }
-        if (message.type === "GROUP_PHASE_COMPLETE") {
+        if (message.type === "TEAM_UPDATE") {
+          const team = message.payload;
+          queryClient.invalidateQueries({ queryKey: ["/api/categories", team.categoryId, "teams"] });
+        }
+        if (message.type === "GROUP_PHASE_COMPLETE" || message.type === "CHAMPION_DECLARED") {
           const { categoryId: catId } = message.payload;
           queryClient.invalidateQueries({ queryKey: ["/api/categories", catId, "matches"] });
           queryClient.invalidateQueries({ queryKey: ["/api/categories", catId, "teams"] });

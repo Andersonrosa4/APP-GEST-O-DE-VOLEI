@@ -4,10 +4,10 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { LayoutShell } from "@/components/layout-shell";
 import {
-  Loader2, Plus, Trash2, Calendar, MapPin, Trophy, UserPlus, Swords, BarChart3, KeyRound, ArrowLeft, Shuffle, Grid3X3, Wand2, Waves
+  Loader2, Plus, Trash2, Calendar, MapPin, Trophy, UserPlus, Swords, BarChart3, KeyRound, ArrowLeft, Shuffle, Grid3X3, Wand2, Waves, Pencil, Check, X
 } from "lucide-react";
 import { useTournaments, useCreateTournament, useDeleteTournament, useCategories, useCreateCategory } from "@/hooks/use-tournaments";
-import { useTeams, useCreateTeam, useDeleteTeam, useMatches, useDrawGroups, useGenerateMatches, useGenerateBracket, useUpdateMatch, useStandings, useLiveMatchUpdates, useGenerateTeams } from "@/hooks/use-matches";
+import { useTeams, useCreateTeam, useDeleteTeam, useMatches, useDrawGroups, useGenerateMatches, useGenerateBracket, useUpdateMatch, useUpdateTeam, useStandings, useLiveMatchUpdates, useGenerateTeams } from "@/hooks/use-matches";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { MatchCard } from "@/components/match-card";
-import { BracketTree } from "@/components/bracket-tree";
+import { BracketTree, ChampionBanner } from "@/components/bracket-tree";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Match, Team } from "@shared/schema";
 
@@ -493,6 +493,59 @@ function TeamsAndGroupsTab({ tournamentId, categories, selectedCategoryId, onSel
   );
 }
 
+function EditableTeamName({ team, categoryId }: { team: Team; categoryId: number }) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(team.name);
+  const updateTeam = useUpdateTeam();
+
+  const handleSave = () => {
+    if (name.trim() && name.trim() !== team.name) {
+      updateTeam.mutate({ id: team.id, name: name.trim() });
+    }
+    setEditing(false);
+  };
+
+  const handleCancel = () => {
+    setName(team.name);
+    setEditing(false);
+  };
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1 flex-1 min-w-0">
+        <Input
+          value={name}
+          onChange={e => setName(e.target.value)}
+          className="h-8 text-sm"
+          autoFocus
+          onKeyDown={e => {
+            if (e.key === "Enter") handleSave();
+            if (e.key === "Escape") handleCancel();
+          }}
+          data-testid={`input-edit-team-${team.id}`}
+        />
+        <Button variant="ghost" size="icon" onClick={handleSave} data-testid={`button-save-team-${team.id}`}>
+          <Check className="w-4 h-4 text-green-600" />
+        </Button>
+        <Button variant="ghost" size="icon" onClick={handleCancel}>
+          <X className="w-4 h-4 text-muted-foreground" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <span
+      className="font-semibold text-sm cursor-pointer hover:text-primary transition-colors flex items-center gap-1"
+      onClick={() => setEditing(true)}
+      data-testid={`text-team-name-${team.id}`}
+    >
+      {team.name}
+      <Pencil className="w-3 h-3 text-muted-foreground" />
+    </span>
+  );
+}
+
 function CategoryTeamsAndGroups({ categoryId, tournamentId }: { categoryId: number; tournamentId: number }) {
   const { data: teams, isLoading } = useTeams(categoryId);
   const createTeam = useCreateTeam();
@@ -642,9 +695,9 @@ function CategoryTeamsAndGroups({ categoryId, tournamentId }: { categoryId: numb
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {groupedTeams[gName].map((t: Team) => (
-                          <div key={t.id} className="flex items-center justify-between p-3 border rounded-md card-hover bg-card" data-testid={`team-card-${t.id}`}>
-                            <span className="font-semibold text-sm">{t.name}</span>
-                            <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteTeam.mutate({ id: t.id, categoryId })} data-testid={`button-delete-team-${t.id}`}>
+                          <div key={t.id} className="flex items-center justify-between gap-2 p-3 border rounded-md bg-card" data-testid={`team-card-${t.id}`}>
+                            <EditableTeamName team={t} categoryId={categoryId} />
+                            <Button variant="ghost" size="icon" className="text-destructive flex-shrink-0" onClick={() => deleteTeam.mutate({ id: t.id, categoryId })} data-testid={`button-delete-team-${t.id}`}>
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
@@ -660,9 +713,9 @@ function CategoryTeamsAndGroups({ categoryId, tournamentId }: { categoryId: numb
                   {hasGroups && <h4 className="font-bold text-sm text-muted-foreground mb-2">Sem Chave</h4>}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                     {ungroupedTeams.map((t: Team) => (
-                      <div key={t.id} className="flex items-center justify-between p-3 border rounded-md card-hover bg-card" data-testid={`team-card-${t.id}`}>
-                        <span className="font-semibold text-sm">{t.name}</span>
-                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteTeam.mutate({ id: t.id, categoryId })} data-testid={`button-delete-team-${t.id}`}>
+                      <div key={t.id} className="flex items-center justify-between gap-2 p-3 border rounded-md bg-card" data-testid={`team-card-${t.id}`}>
+                        <EditableTeamName team={t} categoryId={categoryId} />
+                        <Button variant="ghost" size="icon" className="text-destructive flex-shrink-0" onClick={() => deleteTeam.mutate({ id: t.id, categoryId })} data-testid={`button-delete-team-${t.id}`}>
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
@@ -946,7 +999,6 @@ function ScoreEditor({ match, team1, team2, onSave }: { match: Match; team1?: Te
   const [s2s2, setS2s2] = useState(match.set2Team2 || 0);
   const [s3s1, setS3s1] = useState(match.set3Team1 || 0);
   const [s3s2, setS3s2] = useState(match.set3Team2 || 0);
-  const [status, setStatus] = useState<string>(match.status);
 
   const t1SetsWon = (s1s1 > s1s2 ? 1 : 0) + (s2s1 > s2s2 ? 1 : 0) + (s3s1 > s3s2 ? 1 : 0);
   const t2SetsWon = (s1s2 > s1s1 ? 1 : 0) + (s2s2 > s2s1 ? 1 : 0) + (s3s2 > s3s1 ? 1 : 0);
@@ -962,18 +1014,13 @@ function ScoreEditor({ match, team1, team2, onSave }: { match: Match; team1?: Te
   const hasAnyScores = s1s1 > 0 || s1s2 > 0 || s2s1 > 0 || s2s2 > 0;
 
   const handleSave = () => {
-    let finalStatus = status;
-    if (autoFinalize) {
-      finalStatus = "finalizado";
-    } else if (hasAnyScores && status === "agendado") {
-      finalStatus = "em_andamento";
-    }
+    const finalStatus = autoFinalize ? "finalizado" : (hasAnyScores ? "finalizado" : "agendado");
     onSave({
       set1Team1: s1s1, set1Team2: s1s2,
       set2Team1: s2s1, set2Team2: s2s2,
       set3Team1: s3s1, set3Team2: s3s2,
       status: finalStatus,
-      winnerId: finalStatus === "finalizado" ? winnerId : null,
+      winnerId: autoFinalize ? winnerId : null,
     });
   };
 
@@ -1024,20 +1071,6 @@ function ScoreEditor({ match, team1, team2, onSave }: { match: Match; team1?: Te
         </div>
       </div>
 
-      {!autoFinalize && (
-        <div className="flex items-center justify-between">
-          <Label className="text-sm">Status</Label>
-          <Select value={hasAnyScores && status === "agendado" ? "em_andamento" : status} onValueChange={setStatus}>
-            <SelectTrigger className="w-[180px]" data-testid="select-match-status"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {!hasAnyScores && <SelectItem value="agendado">Agendado</SelectItem>}
-              <SelectItem value="em_andamento">Em Andamento</SelectItem>
-              <SelectItem value="finalizado">Finalizado</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
       {winnerId && (
         <div className="bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 text-sm p-3 rounded-md text-center font-semibold" data-testid="text-winner-display">
           <Trophy className="w-4 h-4 inline mr-1" />
@@ -1045,8 +1078,14 @@ function ScoreEditor({ match, team1, team2, onSave }: { match: Match; team1?: Te
         </div>
       )}
 
-      <Button onClick={handleSave} className="w-full" data-testid="button-save-score">
-        {autoFinalize ? "Finalizar e Salvar" : "Salvar Placar"}
+      {!winnerId && hasAnyScores && (
+        <div className="bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 text-sm p-3 rounded-md text-center font-medium">
+          Insira o placar completo para finalizar o jogo automaticamente.
+        </div>
+      )}
+
+      <Button onClick={handleSave} className="w-full" disabled={hasAnyScores && !autoFinalize} data-testid="button-save-score">
+        {autoFinalize ? "Salvar e Finalizar" : "Salvar Placar"}
       </Button>
     </div>
   );
