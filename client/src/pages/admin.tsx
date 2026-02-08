@@ -1000,18 +1000,28 @@ function ScoreEditor({ match, team1, team2, onSave }: { match: Match; team1?: Te
   const [s3s1, setS3s1] = useState(match.set3Team1 || 0);
   const [s3s2, setS3s2] = useState(match.set3Team2 || 0);
 
-  const t1SetsWon = (s1s1 > s1s2 ? 1 : 0) + (s2s1 > s2s2 ? 1 : 0) + (s3s1 > s3s2 ? 1 : 0);
-  const t2SetsWon = (s1s2 > s1s1 ? 1 : 0) + (s2s2 > s2s1 ? 1 : 0) + (s3s2 > s3s1 ? 1 : 0);
+  const set1Filled = s1s1 > 0 && s1s2 > 0;
+  const set2Filled = s2s1 > 0 && s2s2 > 0;
+  const set3Filled = s3s1 > 0 && s3s2 > 0;
+  const set1Partial = (s1s1 > 0) !== (s1s2 > 0);
+  const set2Partial = (s2s1 > 0) !== (s2s2 > 0);
+  const set3Partial = (s3s1 > 0) !== (s3s2 > 0);
+  const hasPartial = set1Partial || set2Partial || set3Partial;
+  const hasGap = (!set1Filled && set2Filled) || (!set2Filled && set3Filled && !set1Filled) || (set1Filled && !set2Filled && set3Filled);
 
-  const needsSet3 = t1SetsWon < 2 && t2SetsWon < 2 && (s1s1 > 0 || s1s2 > 0) && (s2s1 > 0 || s2s2 > 0);
-  const showSet3 = needsSet3 || s3s1 > 0 || s3s2 > 0;
+  const t1SetsWon = (set1Filled && s1s1 > s1s2 ? 1 : 0) + (set2Filled && s2s1 > s2s2 ? 1 : 0) + (set3Filled && s3s1 > s3s2 ? 1 : 0);
+  const t2SetsWon = (set1Filled && s1s2 > s1s1 ? 1 : 0) + (set2Filled && s2s2 > s2s1 ? 1 : 0) + (set3Filled && s3s2 > s3s1 ? 1 : 0);
+
+  const filledCount = (set1Filled ? 1 : 0) + (set2Filled ? 1 : 0) + (set3Filled ? 1 : 0);
+  const hasAnyScores = filledCount > 0 || set1Partial || set2Partial || set3Partial;
+  const isTied = filledCount > 0 && t1SetsWon === t2SetsWon;
 
   let winnerId = null;
-  if (t1SetsWon >= 2) winnerId = match.team1Id;
-  else if (t2SetsWon >= 2) winnerId = match.team2Id;
+  if (filledCount > 0 && !isTied && !hasPartial && !hasGap) {
+    winnerId = t1SetsWon > t2SetsWon ? match.team1Id : match.team2Id;
+  }
 
   const autoFinalize = winnerId !== null;
-  const hasAnyScores = s1s1 > 0 || s1s2 > 0 || s2s1 > 0 || s2s2 > 0;
 
   const handleSave = () => {
     const finalStatus = autoFinalize ? "finalizado" : (hasAnyScores ? "finalizado" : "agendado");
@@ -1061,11 +1071,11 @@ function ScoreEditor({ match, team1, team2, onSave }: { match: Match; team1?: Te
             </div>
           </div>
           <div className="text-center">
-            <Label className="text-xs text-muted-foreground">Set 3{!showSet3 ? " (opc.)" : ""}</Label>
+            <Label className="text-xs text-muted-foreground">Set 3 (opc.)</Label>
             <div className="flex items-center gap-1 mt-1">
-              <Input type="number" min={0} max={99} className={`w-14 text-center ${setIndicator(s3s1, s3s2)}`} value={s3s1} onChange={e => setS3s1(Number(e.target.value))} data-testid="input-s3t1" disabled={!showSet3 && !needsSet3} />
+              <Input type="number" min={0} max={99} className={`w-14 text-center ${setIndicator(s3s1, s3s2)}`} value={s3s1} onChange={e => setS3s1(Number(e.target.value))} data-testid="input-s3t1" />
               <span className="text-muted-foreground text-xs">x</span>
-              <Input type="number" min={0} max={99} className={`w-14 text-center ${setIndicator(s3s2, s3s1)}`} value={s3s2} onChange={e => setS3s2(Number(e.target.value))} data-testid="input-s3t2" disabled={!showSet3 && !needsSet3} />
+              <Input type="number" min={0} max={99} className={`w-14 text-center ${setIndicator(s3s2, s3s1)}`} value={s3s2} onChange={e => setS3s2(Number(e.target.value))} data-testid="input-s3t2" />
             </div>
           </div>
         </div>
@@ -1078,9 +1088,11 @@ function ScoreEditor({ match, team1, team2, onSave }: { match: Match; team1?: Te
         </div>
       )}
 
-      {!winnerId && hasAnyScores && (
+      {!winnerId && hasAnyScores && (hasPartial || hasGap || isTied) && (
         <div className="bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 text-sm p-3 rounded-md text-center font-medium">
-          Insira o placar completo para finalizar o jogo automaticamente.
+          {hasPartial ? "Preencha o placar de ambas as duplas em cada set." :
+           hasGap ? "Preencha os sets em ordem sequencial." :
+           "Empate em sets! Preencha mais um set para definir o vencedor."}
         </div>
       )}
 
