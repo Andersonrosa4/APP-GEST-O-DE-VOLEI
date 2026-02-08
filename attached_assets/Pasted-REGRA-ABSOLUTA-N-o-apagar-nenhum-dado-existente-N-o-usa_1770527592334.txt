@@ -1,0 +1,146 @@
+REGRA ABSOLUTA:
+Não apagar nenhum dado existente.
+Não usar DROP TABLE.
+Somente CREATE TABLE IF NOT EXISTS ou ALTER TABLE.
+
+REGRA DE NOMES:
+É PROIBIDO exibir "Dupla 1", "Dupla 2", "Team 1", "Team 2" ou qualquer numeração como nome.
+Em TODOS os locais do sistema deve ser exibido SEMPRE o NOME REAL DA DUPLA cadastrado.
+
+Você é um engenheiro de software especialista em sistemas de torneios.
+
+Implemente uma NOVA ABA chamada:
+
+"Sequência de Jogos"
+
+Essa aba deve existir em:
+
+- Painel Admin
+- Painel Organizador
+- Painel Atleta
+
+====================================================
+1) CONTEÚDO DA ABA
+====================================================
+
+A aba deve exibir:
+
+1) Sequência linear de jogos
+2) Chaveamento visual em árvore
+
+====================================================
+2) SEQUÊNCIA LINEAR
+====================================================
+
+Exibir lista ordenada por:
+
+match_number ASC
+
+Formato:
+
+Jogo 1
+Jogo 2
+Jogo 3
+...
+
+Cada item mostra:
+
+- Jogo X
+- Nome da Dupla A x Nome da Dupla B
+- Quadra
+- Fase
+- Status
+- Placar
+
+====================================================
+3) CHAVEAMENTO EM ÁRVORE
+====================================================
+
+Exibir colunas:
+
+Quartas → Semifinais → Final → Terceiro Lugar (opcional)
+
+Cada jogo em card conectado por linhas.
+
+====================================================
+4) CARD DE JOGO
+====================================================
+
+Dentro de cada card:
+
+- Jogo X (match_number)
+- Nome da Dupla A
+- Nome da Dupla B
+- Sets
+- Placar
+
+====================================================
+5) PLACAR
+====================================================
+
+Admin e Organizador:
+
+- Podem editar placar
+- Inserir:
+  Set 1
+  Set 2
+  Set 3 (opcional)
+
+Atleta:
+
+- Apenas visualiza
+
+====================================================
+6) REGRA DE VITÓRIA
+====================================================
+
+- Melhor de 3 sets
+- Vence quem ganhar 2 sets
+- Diferença mínima de 2 pontos
+
+====================================================
+7) AVANÇO AUTOMÁTICO
+====================================================
+
+Ao salvar placar:
+
+- Sistema identifica vencedor
+- Insere vencedor automaticamente no próximo jogo
+- Atualiza árvore
+
+====================================================
+8) NUMERAÇÃO
+====================================================
+
+Todos os jogos devem possuir:
+
+match_number
+
+====================================================
+9) TEMPO REAL
+====================================================
+
+Usar Supabase Realtime para:
+
+- Placar
+- Vencedor
+- Avanço
+
+====================================================
+10) DESIGN
+====================================================
+
+- Visual em árvore
+- Cards com sombra
+- Linhas conectadas
+- Layout moderno
+
+====================================================
+ENTREGA
+
+Nova aba Sequência de Jogos,
+Sequência linear + árvore,
+Placar funcional,
+Avanço automático,
+Tempo real ativo,
+Nomes reais de duplas em todo o sistema.
