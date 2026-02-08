@@ -744,12 +744,13 @@ export async function registerRoutes(
       else byGroup[q.group].second = q.team;
     }
 
-    const A = groupNames[0], B = groupNames[1], C = groupNames[2], D = groupNames[3];
+    const sorted = [...groupNames].sort();
+    const A = sorted[0], B = sorted[1], C = sorted[2], D = sorted[3];
     const pairings: { team1: Team; team2: Team }[] = [];
 
-    const hasSeconds = byGroup[A]?.second || byGroup[B]?.second || byGroup[C]?.second || byGroup[D]?.second;
+    const allHaveSeconds = sorted.every(g => byGroup[g]?.second);
 
-    if (hasSeconds) {
+    if (allHaveSeconds) {
       if (byGroup[A]?.first && byGroup[D]?.second)
         pairings.push({ team1: byGroup[A].first, team2: byGroup[D].second });
       if (byGroup[B]?.first && byGroup[C]?.second)
