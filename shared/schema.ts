@@ -50,6 +50,8 @@ export const categories = pgTable("categories", {
   name: text("name").notNull(),
   gender: text("gender", { enum: ["masculino", "feminino", "misto"] }).notNull(),
   maxTeams: integer("max_teams").default(32),
+  qualifyPerGroup: integer("qualify_per_group").default(2),
+  qualifyByIndex: integer("qualify_by_index").default(0),
 });
 
 export const insertCategorySchema = createInsertSchema(categories).omit({ id: true });
