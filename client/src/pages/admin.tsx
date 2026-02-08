@@ -713,6 +713,7 @@ function CategoryMatchesManager({ categoryId }: { categoryId: number }) {
 
   const [scoreOpen, setScoreOpen] = useState(false);
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
+  const [viewMode, setViewMode] = useState<"sequencia" | "rodadas">("sequencia");
 
   const groupMatches = matches?.filter((m: Match) => m.stage === "grupo") || [];
   const bracketMatches = matches?.filter((m: Match) => m.stage !== "grupo") || [];
@@ -726,6 +727,8 @@ function CategoryMatchesManager({ categoryId }: { categoryId: number }) {
     roundMap[r].push(m);
   }
   const roundNumbers = Object.keys(roundMap).map(Number).sort((a, b) => a - b);
+
+  const allSorted = [...(matches || [])].sort((a: Match, b: Match) => (a.matchNumber || 999) - (b.matchNumber || 999) || a.id - b.id);
 
   return (
     <div className="space-y-6">
@@ -786,7 +789,78 @@ function CategoryMatchesManager({ categoryId }: { categoryId: number }) {
         </Card>
       )}
 
-      {roundNumbers.length > 0 && (
+      {(matches || []).length > 0 && (
+        <div className="flex items-center gap-2">
+          <Button
+            variant={viewMode === "sequencia" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("sequencia")}
+            data-testid="button-view-sequence"
+          >
+            Sequencia
+          </Button>
+          <Button
+            variant={viewMode === "rodadas" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setViewMode("rodadas")}
+            data-testid="button-view-rounds"
+          >
+            Por Rodada
+          </Button>
+        </div>
+      )}
+
+      {viewMode === "sequencia" && allSorted.length > 0 && (
+        <div className="space-y-2">
+          {allSorted.map((m: Match) => {
+            const t1 = teams?.find((t: Team) => t.id === m.team1Id);
+            const t2 = teams?.find((t: Team) => t.id === m.team2Id);
+            const isFinished = m.status === "finalizado";
+            const isLive = m.status === "em_andamento";
+            const isBracket = m.stage !== "grupo";
+            const stageLabel: Record<string, string> = { quartas: "QF", semifinal: "SF", final: "Final", terceiro: "3o" };
+            return (
+              <div
+                key={m.id}
+                className={`flex items-center gap-3 p-3 rounded-md border bg-card cursor-pointer ${isLive ? "ring-2 ring-red-400 border-red-200" : ""} ${isFinished ? "opacity-70" : ""}`}
+                onClick={() => { setEditingMatch(m); setScoreOpen(true); }}
+                data-testid={`row-admin-seq-${m.id}`}
+              >
+                <div className={`w-10 h-10 rounded-md flex items-center justify-center font-bold text-sm flex-shrink-0 ${isBracket ? "bg-amber-500 text-white" : "bg-primary text-primary-foreground"}`}>
+                  {m.matchNumber || "—"}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-sm truncate">{t1?.name || "A definir"}</span>
+                    <span className="text-muted-foreground text-xs">vs</span>
+                    <span className="font-semibold text-sm truncate">{t2?.name || "A definir"}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
+                    {m.groupName && <span className="text-primary font-medium">{m.groupName}</span>}
+                    {isBracket && <span className="text-amber-600 font-medium">{stageLabel[m.stage] || m.stage}</span>}
+                    <span>Q{m.courtNumber}</span>
+                    {m.roundNumber && <span>R{m.roundNumber}</span>}
+                  </div>
+                </div>
+                <div className="flex-shrink-0 text-right">
+                  {isLive && <Badge variant="destructive" className="animate-pulse">AO VIVO</Badge>}
+                  {isFinished && (
+                    <div className="text-xs font-mono font-bold">
+                      {m.set1Team1}-{m.set1Team2} / {m.set2Team1}-{m.set2Team2}
+                      {((m.set3Team1 || 0) > 0 || (m.set3Team2 || 0) > 0) && <> / {m.set3Team1}-{m.set3Team2}</>}
+                    </div>
+                  )}
+                  {!isLive && !isFinished && (
+                    <Badge variant="outline" className="text-xs">Agendado</Badge>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {viewMode === "rodadas" && roundNumbers.length > 0 && (
         <div className="space-y-6">
           <h3 className="font-bold text-lg">Fase de Grupos</h3>
           {roundNumbers.map(roundNum => (
@@ -808,7 +882,7 @@ function CategoryMatchesManager({ categoryId }: { categoryId: number }) {
         </div>
       )}
 
-      {bracketMatches.length > 0 && (
+      {viewMode === "rodadas" && bracketMatches.length > 0 && (
         <div>
           <h3 className="font-bold text-lg mb-3">Fase Eliminatória</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

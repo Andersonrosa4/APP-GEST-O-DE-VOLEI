@@ -36,6 +36,11 @@ export function MatchCard({ match, team1, team2 }: MatchCardProps) {
     )} data-testid={`card-match-${match.id}`}>
       <div className="flex justify-between items-center mb-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground font-medium flex-wrap">
+          {match.matchNumber && (
+            <span className="bg-primary text-primary-foreground px-2 py-0.5 rounded-md font-bold" data-testid={`badge-match-number-${match.id}`}>
+              Jogo {match.matchNumber}
+            </span>
+          )}
           <span className="bg-muted px-2 py-0.5 rounded-md">Quadra {match.courtNumber}</span>
           {match.stage === "grupo" && match.roundNumber && (
             <span className="bg-primary/10 text-primary px-2 py-0.5 rounded-md">R{match.roundNumber}</span>

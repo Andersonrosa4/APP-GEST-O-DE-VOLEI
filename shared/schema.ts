@@ -95,6 +95,7 @@ export const matches = pgTable("matches", {
   categoryId: integer("category_id").notNull(),
   team1Id: integer("team1_id"),
   team2Id: integer("team2_id"),
+  matchNumber: integer("match_number"),
   courtNumber: integer("court_number").default(1),
   scheduledTime: timestamp("scheduled_time"),
   roundNumber: integer("round_number"),

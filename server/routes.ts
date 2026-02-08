@@ -168,6 +168,11 @@ export async function registerRoutes(
     res.json(teams);
   });
 
+  app.get("/api/categories/:categoryId/matches", async (req, res) => {
+    const matches = await storage.getMatches(Number(req.params.categoryId));
+    res.json(matches);
+  });
+
   app.get("/api/tournaments/:id/teams", async (req, res) => {
     const teams = await storage.getTeamsByTournament(Number(req.params.id));
     res.json(teams);
@@ -277,6 +282,7 @@ export async function registerRoutes(
     const tournament = category ? await storage.getTournament(category.tournamentId) : null;
     const totalCourts = tournament?.courts || 1;
     let courtNum = 1;
+    let matchNum = 1;
 
     for (let roundIdx = 0; roundIdx < maxRounds; roundIdx++) {
       for (const gName of groupNames) {
@@ -286,6 +292,7 @@ export async function registerRoutes(
             categoryId,
             team1Id: game.team1.id,
             team2Id: game.team2.id,
+            matchNumber: matchNum,
             courtNumber: ((courtNum - 1) % totalCourts) + 1,
             roundNumber: roundIdx + 1,
             status: "agendado",
@@ -294,6 +301,7 @@ export async function registerRoutes(
           });
           createdMatches.push(match);
           courtNum++;
+          matchNum++;
         }
       }
     }
@@ -355,17 +363,20 @@ export async function registerRoutes(
         set1Team1: 0, set1Team2: 0, set2Team1: 0, set2Team2: 0, set3Team1: 0, set3Team2: 0 });
     }
 
+    const allMatches = await storage.getMatches(categoryId);
+    const maxGroupMatchNum = Math.max(0, ...allMatches.filter(m => m.stage === "grupo").map(m => m.matchNumber || 0));
+    let bracketMatchNum = maxGroupMatchNum + 1;
+
     const createdMatches: Match[] = [];
 
     if (numGroups === 4) {
       const pairings = generateOlympicCrossover(qualified, groupNames);
-      const isQuartas = qualified.length > 4;
 
       if (qualified.length <= 4) {
         for (const p of pairings.slice(0, 2)) {
           const match = await storage.createMatch({
             categoryId, team1Id: p.team1.id, team2Id: p.team2.id,
-            stage: "semifinal", status: "agendado", courtNumber: 1,
+            matchNumber: bracketMatchNum++, stage: "semifinal", status: "agendado", courtNumber: 1,
           });
           createdMatches.push(match);
         }
@@ -373,7 +384,7 @@ export async function registerRoutes(
         for (const p of pairings) {
           const match = await storage.createMatch({
             categoryId, team1Id: p.team1.id, team2Id: p.team2.id,
-            stage: "quartas", status: "agendado", courtNumber: 1,
+            matchNumber: bracketMatchNum++, stage: "quartas", status: "agendado", courtNumber: 1,
           });
           createdMatches.push(match);
         }
@@ -383,7 +394,7 @@ export async function registerRoutes(
         for (let i = 0; i < 2; i++) {
           const match = await storage.createMatch({
             categoryId, team1Id: null, team2Id: null,
-            stage: "semifinal", status: "agendado", courtNumber: 1,
+            matchNumber: bracketMatchNum++, stage: "semifinal", status: "agendado", courtNumber: 1,
           });
           createdMatches.push(match);
         }
@@ -391,13 +402,13 @@ export async function registerRoutes(
 
       const finalMatch = await storage.createMatch({
         categoryId, team1Id: null, team2Id: null,
-        stage: "final", status: "agendado", courtNumber: 1,
+        matchNumber: bracketMatchNum++, stage: "final", status: "agendado", courtNumber: 1,
       });
       createdMatches.push(finalMatch);
 
       const bronzeMatch = await storage.createMatch({
         categoryId, team1Id: null, team2Id: null,
-        stage: "terceiro", status: "agendado", courtNumber: 1,
+        matchNumber: bracketMatchNum++, stage: "terceiro", status: "agendado", courtNumber: 1,
       });
       createdMatches.push(bronzeMatch);
     } else {
@@ -407,14 +418,14 @@ export async function registerRoutes(
         for (const p of pairings) {
           const match = await storage.createMatch({
             categoryId, team1Id: p.team1.id, team2Id: p.team2.id,
-            stage: "quartas", status: "agendado", courtNumber: 1,
+            matchNumber: bracketMatchNum++, stage: "quartas", status: "agendado", courtNumber: 1,
           });
           createdMatches.push(match);
         }
         for (let i = 0; i < 2; i++) {
           const match = await storage.createMatch({
             categoryId, team1Id: null, team2Id: null,
-            stage: "semifinal", status: "agendado", courtNumber: 1,
+            matchNumber: bracketMatchNum++, stage: "semifinal", status: "agendado", courtNumber: 1,
           });
           createdMatches.push(match);
         }
@@ -422,7 +433,7 @@ export async function registerRoutes(
         for (const p of pairings) {
           const match = await storage.createMatch({
             categoryId, team1Id: p.team1.id, team2Id: p.team2.id,
-            stage: "semifinal", status: "agendado", courtNumber: 1,
+            matchNumber: bracketMatchNum++, stage: "semifinal", status: "agendado", courtNumber: 1,
           });
           createdMatches.push(match);
         }
@@ -430,13 +441,13 @@ export async function registerRoutes(
 
       const finalMatch = await storage.createMatch({
         categoryId, team1Id: null, team2Id: null,
-        stage: "final", status: "agendado", courtNumber: 1,
+        matchNumber: bracketMatchNum++, stage: "final", status: "agendado", courtNumber: 1,
       });
       createdMatches.push(finalMatch);
 
       const bronzeMatch = await storage.createMatch({
         categoryId, team1Id: null, team2Id: null,
-        stage: "terceiro", status: "agendado", courtNumber: 1,
+        matchNumber: bracketMatchNum++, stage: "terceiro", status: "agendado", courtNumber: 1,
       });
       createdMatches.push(bronzeMatch);
     }

@@ -5,7 +5,7 @@ import { LayoutShell } from "@/components/layout-shell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MatchCard } from "@/components/match-card";
-import { Loader2, Calendar, MapPin, Users, Trophy, Swords, BarChart3, Clock } from "lucide-react";
+import { Loader2, Calendar, MapPin, Users, Trophy, Swords, BarChart3, Clock, ListOrdered } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useState } from "react";
@@ -138,10 +138,13 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
   const roundNumbers = Object.keys(roundMap).map(Number).sort((a, b) => a - b);
 
   return (
-    <Tabs defaultValue="jogos">
-      <TabsList className="mb-6">
+    <Tabs defaultValue="sequencia">
+      <TabsList className="mb-6 flex-wrap">
+        <TabsTrigger value="sequencia" data-testid="tab-public-sequence">
+          <ListOrdered className="w-4 h-4 mr-1.5" /> Ordem dos Jogos
+        </TabsTrigger>
         <TabsTrigger value="jogos" data-testid="tab-public-matches">
-          <Swords className="w-4 h-4 mr-1.5" /> Jogos
+          <Swords className="w-4 h-4 mr-1.5" /> Por Rodada
         </TabsTrigger>
         <TabsTrigger value="classificacao" data-testid="tab-public-standings">
           <BarChart3 className="w-4 h-4 mr-1.5" /> Classificacao
@@ -150,6 +153,134 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
           <Users className="w-4 h-4 mr-1.5" /> Duplas
         </TabsTrigger>
       </TabsList>
+
+      <TabsContent value="sequencia" className="space-y-6">
+        {liveMatches.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              <h3 className="font-bold text-lg">Ao Vivo</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {liveMatches.map((m: Match) => (
+                <MatchCard key={m.id} match={m} team1={teams?.find((t: Team) => t.id === m.team1Id)} team2={teams?.find((t: Team) => t.id === m.team2Id)} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {(() => {
+          const allSorted = [...(matches || [])].sort((a, b) => (a.matchNumber || 999) - (b.matchNumber || 999) || a.id - b.id);
+          const groupSorted = allSorted.filter((m: Match) => m.stage === "grupo");
+          const bracketSorted = allSorted.filter((m: Match) => m.stage !== "grupo");
+
+          return (
+            <>
+              {groupSorted.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-bold text-lg flex items-center gap-2" data-testid="text-sequence-group-title">
+                    <Swords className="w-5 h-5 text-primary" /> Fase de Grupos - Sequencia de Jogos
+                  </h3>
+                  <div className="space-y-2">
+                    {groupSorted.map((m: Match) => {
+                      const t1 = teams?.find((t: Team) => t.id === m.team1Id);
+                      const t2 = teams?.find((t: Team) => t.id === m.team2Id);
+                      const isFinished = m.status === "finalizado";
+                      const isLive = m.status === "em_andamento";
+                      return (
+                        <div key={m.id} className={`flex items-center gap-3 p-3 rounded-md border bg-card ${isLive ? "ring-2 ring-red-400 border-red-200" : ""} ${isFinished ? "opacity-70" : ""}`} data-testid={`row-sequence-${m.id}`}>
+                          <div className="w-10 h-10 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm flex-shrink-0" data-testid={`text-seq-number-${m.id}`}>
+                            {m.matchNumber || "—"}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-sm truncate">{t1?.name || "A definir"}</span>
+                              <span className="text-muted-foreground text-xs">vs</span>
+                              <span className="font-semibold text-sm truncate">{t2?.name || "A definir"}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
+                              {m.groupName && <span className="text-primary font-medium">{m.groupName}</span>}
+                              <span>Quadra {m.courtNumber}</span>
+                              {m.roundNumber && <span>R{m.roundNumber}</span>}
+                            </div>
+                          </div>
+                          <div className="flex-shrink-0 text-right">
+                            {isLive && <Badge variant="destructive" className="animate-pulse">AO VIVO</Badge>}
+                            {isFinished && (
+                              <div className="text-xs font-mono font-bold">
+                                {m.set1Team1}-{m.set1Team2} / {m.set2Team1}-{m.set2Team2}
+                                {((m.set3Team1 || 0) > 0 || (m.set3Team2 || 0) > 0) && <> / {m.set3Team1}-{m.set3Team2}</>}
+                              </div>
+                            )}
+                            {!isLive && !isFinished && (
+                              <Badge variant="outline" className="text-xs">Agendado</Badge>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {bracketSorted.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="font-bold text-lg flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-amber-500" /> Fase Eliminatoria
+                  </h3>
+                  <div className="space-y-2">
+                    {bracketSorted.map((m: Match) => {
+                      const t1 = teams?.find((t: Team) => t.id === m.team1Id);
+                      const t2 = teams?.find((t: Team) => t.id === m.team2Id);
+                      const isFinished = m.status === "finalizado";
+                      const isLive = m.status === "em_andamento";
+                      return (
+                        <div key={m.id} className={`flex items-center gap-3 p-3 rounded-md border bg-card ${isLive ? "ring-2 ring-red-400 border-red-200" : ""} ${isFinished ? "opacity-70" : ""}`} data-testid={`row-sequence-${m.id}`}>
+                          <div className="w-10 h-10 rounded-md bg-amber-500 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
+                            {m.matchNumber || "—"}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-semibold text-sm truncate">{t1?.name || "A definir"}</span>
+                              <span className="text-muted-foreground text-xs">vs</span>
+                              <span className="font-semibold text-sm truncate">{t2?.name || "A definir"}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-0.5">
+                              {stageLabels[m.stage] || m.stage} - Quadra {m.courtNumber}
+                            </div>
+                          </div>
+                          <div className="flex-shrink-0 text-right">
+                            {isLive && <Badge variant="destructive" className="animate-pulse">AO VIVO</Badge>}
+                            {isFinished && (
+                              <div className="text-xs font-mono font-bold">
+                                {m.set1Team1}-{m.set1Team2} / {m.set2Team1}-{m.set2Team2}
+                                {((m.set3Team1 || 0) > 0 || (m.set3Team2 || 0) > 0) && <> / {m.set3Team1}-{m.set3Team2}</>}
+                              </div>
+                            )}
+                            {!isLive && !isFinished && (
+                              <Badge variant="outline" className="text-xs">{stageLabels[m.stage]}</Badge>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {(matches || []).length === 0 && (
+                <Card>
+                  <CardContent className="p-12 text-center text-muted-foreground">
+                    <ListOrdered className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+                    <p>Nenhum jogo agendado ainda.</p>
+                    <p className="text-xs mt-1">A sequencia dos jogos aparecera aqui quando o organizador gerar as partidas.</p>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          );
+        })()}
+      </TabsContent>
 
       <TabsContent value="jogos" className="space-y-8">
         {liveMatches.length > 0 && (
