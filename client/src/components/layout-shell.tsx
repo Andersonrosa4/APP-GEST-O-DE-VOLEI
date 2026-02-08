@@ -47,6 +47,17 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
               </Button>
             </Link>
 
+            <a
+              href="https://instagram.com/flowapps.ofc"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-muted-foreground transition-colors duration-200 hover:text-[#E4405F]"
+              data-testid="link-instagram-header"
+            >
+              <SiInstagram className="w-3.5 h-3.5" />
+              <span className="text-xs font-medium">flowapps.ofc</span>
+            </a>
+
             <div className="w-px h-6 bg-border mx-2" />
 
             {isAuthenticated ? (
@@ -101,6 +112,18 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
                       <Button className="w-full">Entrar</Button>
                     </Link>
                   )}
+                  <div className="border-t pt-4 mt-2">
+                    <a
+                      href="https://instagram.com/flowapps.ofc"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-muted-foreground transition-colors duration-200 hover:text-[#E4405F]"
+                      data-testid="link-instagram-mobile"
+                    >
+                      <SiInstagram className="w-4 h-4 text-[#E4405F]" />
+                      <span className="text-sm font-medium">flowapps.ofc</span>
+                    </a>
+                  </div>
                 </div>
               </SheetContent>
             </Sheet>
