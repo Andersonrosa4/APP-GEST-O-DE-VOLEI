@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { LogOut, Menu, User, LayoutDashboard, KeyRound, Waves } from "lucide-react";
+import { SiInstagram } from "react-icons/si";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 export function LayoutShell({ children }: { children: React.ReactNode }) {
@@ -110,14 +111,33 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1">{children}</main>
 
       <footer className="border-t bg-white py-8 mt-12">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Waves className="w-4 h-4 text-primary" />
-            <span className="font-bold text-sm" style={{ fontFamily: 'var(--font-display)' }}>Volei de Praia</span>
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex items-center justify-center gap-2">
+              <Waves className="w-4 h-4 text-primary" />
+              <span className="font-bold text-sm" style={{ fontFamily: 'var(--font-display)' }}>Volei de Praia</span>
+            </div>
+
+            <a
+              href="https://instagram.com/flowapps.ofc"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex flex-col items-center gap-1.5 transition-transform duration-200 hover:scale-105"
+              data-testid="link-instagram"
+            >
+              <div className="flex items-center gap-2">
+                <SiInstagram className="w-5 h-5 text-[#E4405F] transition-transform duration-200 group-hover:scale-110" />
+                <span className="font-semibold text-sm text-foreground">flowapps.ofc</span>
+              </div>
+              <span className="text-xs text-muted-foreground group-hover:text-foreground transition-colors duration-200">
+                Quer um aplicativo profissional para o seu negocio? Fale comigo.
+              </span>
+            </a>
+
+            <p className="text-xs text-muted-foreground">
+              &copy; {new Date().getFullYear()} Gerenciamento de Torneios de Volei de Praia
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} Gerenciamento de Torneios de Volei de Praia
-          </p>
         </div>
       </footer>
     </div>
