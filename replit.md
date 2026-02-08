@@ -69,7 +69,9 @@ client/src/components/ - layout-shell.tsx, match-card.tsx, bracket-tree.tsx, ui/
 ## Key Features
 - **Sequencia de Jogos Tab**: Available in admin, organizer, and public/athlete views. Shows linear match sequence + visual bracket tree with SVG connector lines
 - **BracketTree Component**: Visual knockout bracket (Quartas → Semifinais → Final → 3o Lugar) with match cards connected by lines
-- **Score Editing**: Admin/Organizer can click matches to edit scores (best of 3 sets). Winner auto-detected when 2 sets won. Match auto-finalized on save (no intermediate states).
+- **Score Editing**: Admin/Organizer can click matches to edit scores (1-3 sets flexible). Winner auto-detected when majority sets won. Match auto-finalized on save.
+- **Configurable Classification**: Before generating bracket, dialog allows setting qualifyPerGroup (1-4) and qualifyByIndex (0-4). Index criteria: wins > set diff > point diff > points scored > random. Preview shows classified teams before confirming.
+- **Olympic Crossover**: 4-group format uses A1vD2, B1vC2, C1vB2, D1vA2 to guarantee same-group teams only meet in final
 - **Auto-Advance**: Winner automatically progresses to next bracket match. Semifinal winners auto-populate final; losers auto-populate 3rd place match.
 - **Champion Display**: When final match is finalized, "Campeao do Torneio" banner appears with crown/trophy icons
 - **Inline Team Name Editing**: Click team name in admin to edit inline, Enter to save, Escape to cancel

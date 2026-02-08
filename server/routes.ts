@@ -309,10 +309,17 @@ export async function registerRoutes(
     res.status(201).json(createdMatches);
   });
 
-  // === GENERATE BRACKET (Knockout) ===
-  app.post("/api/categories/:categoryId/generate-bracket", requireAuth, async (req, res) => {
-    const categoryId = Number(req.params.categoryId);
+  async function classifyTeamsForBracket(
+    categoryId: number,
+    qualifyPerGroup: number,
+    qualifyByIndex: number
+  ): Promise<{
+    qualified: { team: Team; position: number; group: string; qualifiedBy: "group" | "index" }[];
+    sortedGroups: Record<string, Team[]>;
+    groupNames: string[];
+  }> {
     const teamsList = await storage.getTeams(categoryId);
+    const allMatches = await storage.getMatches(categoryId);
 
     const groups: Record<string, Team[]> = {};
     for (const team of teamsList) {
@@ -323,37 +330,104 @@ export async function registerRoutes(
 
     const sortedGroups: Record<string, Team[]> = {};
     for (const [gName, gTeams] of Object.entries(groups)) {
-      sortedGroups[gName] = sortTeamsByStandings(gTeams, await storage.getMatches(categoryId));
+      sortedGroups[gName] = sortTeamsByStandings(gTeams, allMatches);
     }
 
     const groupNames = Object.keys(sortedGroups).sort();
-    const numGroups = groupNames.length;
-    let qualified: { team: Team; position: number; group: string }[] = [];
+    const qualified: { team: Team; position: number; group: string; qualifiedBy: "group" | "index" }[] = [];
+    const qualifiedIds = new Set<number>();
 
-    if (numGroups === 3) {
-      for (const gName of groupNames) {
-        const sorted = sortedGroups[gName];
-        if (sorted[0]) qualified.push({ team: sorted[0], position: 1, group: gName });
-      }
-      const seconds = groupNames
-        .map(gName => sortedGroups[gName][1])
-        .filter(Boolean)
-        .sort((a, b) => {
-          const aPointDiff = (a.pointsScored || 0) - (a.pointsConceded || 0);
-          const bPointDiff = (b.pointsScored || 0) - (b.pointsConceded || 0);
-          return bPointDiff - aPointDiff;
-        });
-      if (seconds[0]) {
-        const groupOfBestSecond = groupNames.find(gName => sortedGroups[gName][1]?.id === seconds[0].id) || groupNames[0];
-        qualified.push({ team: seconds[0], position: 2, group: groupOfBestSecond });
-      }
-    } else {
-      for (const gName of groupNames) {
-        const sorted = sortedGroups[gName];
-        if (sorted[0]) qualified.push({ team: sorted[0], position: 1, group: gName });
-        if (sorted[1]) qualified.push({ team: sorted[1], position: 2, group: gName });
+    for (const gName of groupNames) {
+      const sorted = sortedGroups[gName];
+      for (let i = 0; i < qualifyPerGroup && i < sorted.length; i++) {
+        qualified.push({ team: sorted[i], position: i + 1, group: gName, qualifiedBy: "group" });
+        qualifiedIds.add(sorted[i].id);
       }
     }
+
+    if (qualifyByIndex > 0) {
+      const remaining: { team: Team; position: number; group: string }[] = [];
+      for (const gName of groupNames) {
+        const sorted = sortedGroups[gName];
+        for (let i = qualifyPerGroup; i < sorted.length; i++) {
+          if (!qualifiedIds.has(sorted[i].id)) {
+            remaining.push({ team: sorted[i], position: i + 1, group: gName });
+          }
+        }
+      }
+
+      remaining.sort((a, b) => {
+        const aWins = a.team.groupWins || 0;
+        const bWins = b.team.groupWins || 0;
+        if (bWins !== aWins) return bWins - aWins;
+
+        const aSetDiff = (a.team.setsWon || 0) - (a.team.setsLost || 0);
+        const bSetDiff = (b.team.setsWon || 0) - (b.team.setsLost || 0);
+        if (bSetDiff !== aSetDiff) return bSetDiff - aSetDiff;
+
+        const aPointDiff = (a.team.pointsScored || 0) - (a.team.pointsConceded || 0);
+        const bPointDiff = (b.team.pointsScored || 0) - (b.team.pointsConceded || 0);
+        if (bPointDiff !== aPointDiff) return bPointDiff - aPointDiff;
+
+        const aScored = a.team.pointsScored || 0;
+        const bScored = b.team.pointsScored || 0;
+        if (bScored !== aScored) return bScored - aScored;
+
+        return Math.random() - 0.5;
+      });
+
+      for (let i = 0; i < qualifyByIndex && i < remaining.length; i++) {
+        qualified.push({ team: remaining[i].team, position: remaining[i].position, group: remaining[i].group, qualifiedBy: "index" });
+        qualifiedIds.add(remaining[i].team.id);
+      }
+    }
+
+    return { qualified, sortedGroups, groupNames };
+  }
+
+  // === BRACKET PREVIEW (show classified teams before generating) ===
+  app.post("/api/categories/:categoryId/bracket-preview", requireAuth, async (req, res) => {
+    const categoryId = Number(req.params.categoryId);
+    const { qualifyPerGroup = 2, qualifyByIndex = 0 } = req.body;
+
+    const { qualified, sortedGroups, groupNames } = await classifyTeamsForBracket(
+      categoryId, qualifyPerGroup, qualifyByIndex
+    );
+
+    const totalQualified = qualified.length;
+    const bracketSize = totalQualified <= 2 ? 2 : totalQualified <= 4 ? 4 : 8;
+
+    res.json({
+      qualified: qualified.map(q => ({
+        teamId: q.team.id,
+        teamName: q.team.name,
+        position: q.position,
+        group: q.group,
+        qualifiedBy: q.qualifiedBy,
+        wins: q.team.groupWins || 0,
+        setDiff: (q.team.setsWon || 0) - (q.team.setsLost || 0),
+        pointDiff: (q.team.pointsScored || 0) - (q.team.pointsConceded || 0),
+      })),
+      totalTeams: (await storage.getTeams(categoryId)).length,
+      numGroups: groupNames.length,
+      bracketSize,
+      qualifyPerGroup,
+      qualifyByIndex,
+    });
+  });
+
+  // === GENERATE BRACKET (Knockout) ===
+  app.post("/api/categories/:categoryId/generate-bracket", requireAuth, async (req, res) => {
+    const categoryId = Number(req.params.categoryId);
+    const { qualifyPerGroup = 2, qualifyByIndex = 0 } = req.body;
+
+    await storage.updateCategory(categoryId, { qualifyPerGroup, qualifyByIndex });
+
+    const { qualified, groupNames } = await classifyTeamsForBracket(
+      categoryId, qualifyPerGroup, qualifyByIndex
+    );
+
+    const numGroups = groupNames.length;
 
     if (qualified.length < 2) return res.status(400).json({ message: "Duplas insuficientes para fase eliminatória" });
 
@@ -369,7 +443,7 @@ export async function registerRoutes(
 
     const createdMatches: Match[] = [];
 
-    if (numGroups === 4) {
+    if (numGroups === 4 && qualifyPerGroup <= 2 && qualifyByIndex === 0) {
       const pairings = generateOlympicCrossover(qualified, groupNames);
 
       if (qualified.length <= 4) {

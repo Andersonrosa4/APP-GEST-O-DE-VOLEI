@@ -123,8 +123,8 @@ export function useGenerateBracket() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   return useMutation({
-    mutationFn: async (categoryId: number) => {
-      const res = await apiRequest("POST", `/api/categories/${categoryId}/generate-bracket`);
+    mutationFn: async ({ categoryId, qualifyPerGroup, qualifyByIndex }: { categoryId: number; qualifyPerGroup: number; qualifyByIndex: number }) => {
+      const res = await apiRequest("POST", `/api/categories/${categoryId}/generate-bracket`, { qualifyPerGroup, qualifyByIndex });
       return await res.json();
     },
     onSuccess: (matches: any[]) => {
@@ -132,6 +132,19 @@ export function useGenerateBracket() {
         queryClient.invalidateQueries({ queryKey: ["/api/categories", matches[0].categoryId, "matches"] });
         toast({ title: "Chave gerada", description: "Fase eliminatória criada." });
       }
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    },
+  });
+}
+
+export function useBracketPreview() {
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async ({ categoryId, qualifyPerGroup, qualifyByIndex }: { categoryId: number; qualifyPerGroup: number; qualifyByIndex: number }) => {
+      const res = await apiRequest("POST", `/api/categories/${categoryId}/bracket-preview`, { qualifyPerGroup, qualifyByIndex });
+      return await res.json();
     },
     onError: (err: any) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });

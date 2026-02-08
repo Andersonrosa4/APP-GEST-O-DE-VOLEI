@@ -32,6 +32,7 @@ export interface IStorage {
   getCategories(tournamentId: number): Promise<Category[]>;
   getCategory(id: number): Promise<Category | undefined>;
   createCategory(c: InsertCategory): Promise<Category>;
+  updateCategory(id: number, updates: Partial<Category>): Promise<Category>;
   deleteCategory(id: number): Promise<void>;
 
   getAthletes(tournamentId: number): Promise<Athlete[]>;
@@ -117,6 +118,10 @@ export class DatabaseStorage implements IStorage {
   }
   async createCategory(c: InsertCategory) {
     const [cat] = await db.insert(categories).values(c).returning();
+    return cat;
+  }
+  async updateCategory(id: number, updates: Partial<Category>) {
+    const [cat] = await db.update(categories).set(updates).where(eq(categories.id, id)).returning();
     return cat;
   }
   async deleteCategory(id: number) {

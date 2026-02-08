@@ -7,7 +7,7 @@ import {
   Loader2, Plus, Trash2, Calendar, MapPin, Trophy, UserPlus, Swords, BarChart3, KeyRound, ArrowLeft, Shuffle, Grid3X3, Wand2, Waves, Pencil, Check, X
 } from "lucide-react";
 import { useTournaments, useCreateTournament, useDeleteTournament, useCategories, useCreateCategory } from "@/hooks/use-tournaments";
-import { useTeams, useCreateTeam, useDeleteTeam, useMatches, useDrawGroups, useGenerateMatches, useGenerateBracket, useUpdateMatch, useUpdateTeam, useStandings, useLiveMatchUpdates, useGenerateTeams } from "@/hooks/use-matches";
+import { useTeams, useCreateTeam, useDeleteTeam, useMatches, useDrawGroups, useGenerateMatches, useGenerateBracket, useBracketPreview, useUpdateMatch, useUpdateTeam, useStandings, useLiveMatchUpdates, useGenerateTeams } from "@/hooks/use-matches";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -773,12 +773,16 @@ function CategoryMatchesManager({ categoryId }: { categoryId: number }) {
   const { data: standings } = useStandings(categoryId);
   const generateMatches = useGenerateMatches();
   const generateBracket = useGenerateBracket();
+  const bracketPreview = useBracketPreview();
   const updateMatch = useUpdateMatch();
   useLiveMatchUpdates(categoryId);
 
   const [scoreOpen, setScoreOpen] = useState(false);
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
   const [viewMode, setViewMode] = useState<"sequencia" | "rodadas">("sequencia");
+  const [bracketDialogOpen, setBracketDialogOpen] = useState(false);
+  const [qualifyPerGroup, setQualifyPerGroup] = useState(2);
+  const [qualifyByIndex, setQualifyByIndex] = useState(0);
 
   const groupMatches = matches?.filter((m: Match) => m.stage === "grupo") || [];
   const bracketMatches = matches?.filter((m: Match) => m.stage !== "grupo") || [];
@@ -808,7 +812,12 @@ function CategoryMatchesManager({ categoryId }: { categoryId: number }) {
         </Button>
         <Button
           variant="outline"
-          onClick={() => generateBracket.mutate(categoryId)}
+          onClick={() => {
+            setQualifyPerGroup(2);
+            setQualifyByIndex(0);
+            bracketPreview.reset();
+            setBracketDialogOpen(true);
+          }}
           disabled={generateBracket.isPending || !allGroupFinished}
           data-testid="button-generate-bracket"
         >
@@ -971,6 +980,111 @@ function CategoryMatchesManager({ categoryId }: { categoryId: number }) {
           onMatchClick={(m) => { setEditingMatch(m); setScoreOpen(true); }}
         />
       )}
+
+      <Dialog open={bracketDialogOpen} onOpenChange={setBracketDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader><DialogTitle>Configurar Fase Eliminatória</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Classificados por chave</Label>
+                <Select value={qualifyPerGroup.toString()} onValueChange={(v) => { setQualifyPerGroup(Number(v)); bracketPreview.reset(); }}>
+                  <SelectTrigger data-testid="select-qualify-per-group"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1 por chave</SelectItem>
+                    <SelectItem value="2">2 por chave</SelectItem>
+                    <SelectItem value="3">3 por chave</SelectItem>
+                    <SelectItem value="4">4 por chave</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Melhores colocados de cada chave avancam direto</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Classificados por indice</Label>
+                <Select value={qualifyByIndex.toString()} onValueChange={(v) => { setQualifyByIndex(Number(v)); bracketPreview.reset(); }}>
+                  <SelectTrigger data-testid="select-qualify-by-index"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Nenhum</SelectItem>
+                    <SelectItem value="1">1 melhor restante</SelectItem>
+                    <SelectItem value="2">2 melhores restantes</SelectItem>
+                    <SelectItem value="3">3 melhores restantes</SelectItem>
+                    <SelectItem value="4">4 melhores restantes</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Melhores nao-classificados entre todas as chaves (vitorias, saldo sets, saldo pontos)</p>
+              </div>
+            </div>
+
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => bracketPreview.mutate({ categoryId, qualifyPerGroup, qualifyByIndex })}
+              disabled={bracketPreview.isPending}
+              data-testid="button-preview-bracket"
+            >
+              {bracketPreview.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <BarChart3 className="w-4 h-4 mr-2" />}
+              Visualizar Classificados
+            </Button>
+
+            {bracketPreview.data && (
+              <Card>
+                <CardContent className="pt-4 space-y-3">
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <Badge variant="secondary">{bracketPreview.data.qualified.length} classificados</Badge>
+                    <Badge variant="outline">{bracketPreview.data.numGroups} chaves</Badge>
+                    <Badge variant="outline">{bracketPreview.data.totalTeams} duplas total</Badge>
+                  </div>
+
+                  <div className="space-y-2">
+                    {bracketPreview.data.qualified
+                      .filter((q: any) => q.qualifiedBy === "group")
+                      .sort((a: any, b: any) => a.group.localeCompare(b.group) || a.position - b.position)
+                      .map((q: any, i: number) => (
+                        <div key={i} className="flex items-center gap-2 text-sm" data-testid={`text-qualified-group-${i}`}>
+                          <Badge variant="default" className="text-xs">{q.group}</Badge>
+                          <span className="text-muted-foreground">#{q.position}</span>
+                          <span className="font-medium">{q.teamName}</span>
+                          <span className="text-muted-foreground text-xs">({q.wins}V, SD:{q.setDiff > 0 ? "+" : ""}{q.setDiff}, SP:{q.pointDiff > 0 ? "+" : ""}{q.pointDiff})</span>
+                        </div>
+                      ))}
+
+                    {bracketPreview.data.qualified.filter((q: any) => q.qualifiedBy === "index").length > 0 && (
+                      <>
+                        <div className="border-t pt-2 mt-2">
+                          <p className="text-xs font-semibold text-muted-foreground mb-1">Classificados por Indice (melhores restantes)</p>
+                        </div>
+                        {bracketPreview.data.qualified
+                          .filter((q: any) => q.qualifiedBy === "index")
+                          .map((q: any, i: number) => (
+                            <div key={`idx-${i}`} className="flex items-center gap-2 text-sm" data-testid={`text-qualified-index-${i}`}>
+                              <Badge variant="outline" className="text-xs">{q.group}</Badge>
+                              <span className="text-muted-foreground">#{q.position}</span>
+                              <span className="font-medium">{q.teamName}</span>
+                              <span className="text-muted-foreground text-xs">({q.wins}V, SD:{q.setDiff > 0 ? "+" : ""}{q.setDiff}, SP:{q.pointDiff > 0 ? "+" : ""}{q.pointDiff})</span>
+                            </div>
+                          ))}
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            <Button
+              className="w-full"
+              onClick={() => {
+                generateBracket.mutate({ categoryId, qualifyPerGroup, qualifyByIndex });
+                setBracketDialogOpen(false);
+              }}
+              disabled={generateBracket.isPending}
+              data-testid="button-confirm-bracket"
+            >
+              <Trophy className="w-4 h-4 mr-2" />
+              {generateBracket.isPending ? "Gerando..." : "Confirmar e Gerar Chave"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={scoreOpen} onOpenChange={setScoreOpen}>
         <DialogContent className="sm:max-w-[450px]">
