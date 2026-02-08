@@ -1,0 +1,109 @@
+REGRA ABSOLUTA:
+Não apagar nenhum dado existente.
+Não usar DROP TABLE.
+Não remover funcionalidades.
+Somente corrigir erros e ajustes.
+
+Você é um engenheiro sênior de QA e arquiteto de software.
+
+Execute um CHECKOUT COMPLETO do sistema, incluindo:
+
+====================================================
+1) TESTE DE FLUXO PRINCIPAL
+====================================================
+
+- Criar torneio
+- Gerar código do torneio
+- Gerar QR Code
+- Criar organizador
+- Criar duplas manualmente
+- Gerar duplas automáticas
+- Editar nome das duplas
+- Sortear chaves
+- Gerar jogos
+- Gerar sequência
+- Lançar placares
+- Avanço automático
+- Gerar final
+- Declarar campeão
+
+====================================================
+2) TESTE POR PERFIL
+====================================================
+
+Admin:
+- Acesso total
+- Todas abas funcionando
+
+Organizador:
+- Gerenciar torneio
+- Lançar placar
+- Ver sequência
+
+Atleta:
+- Login por código
+- Login por QR Code
+- Ver classificação
+- Ver sequência
+- Ver chaveamento
+
+====================================================
+3) TESTES DE REGRAS
+====================================================
+
+- Jogo com 1 set
+- Jogo com 2 sets
+- Jogo com 3 sets
+- Empate de sets exige set desempate
+- Vencedor sempre definido
+
+====================================================
+4) TESTES DE CLASSIFICAÇÃO
+====================================================
+
+- Por chave
+- Por índice
+- Critérios corretos
+- Ordem correta
+
+====================================================
+5) TESTES DE PERFORMANCE
+====================================================
+
+- Simular 1000 atletas acessando
+- Verificar travamentos
+- Otimizar queries se necessário
+
+====================================================
+6) TESTES DE UI
+====================================================
+
+- Mobile
+- Desktop
+- Tablets
+- Botões funcionando
+- Contraste adequado
+
+====================================================
+7) TESTES DE SEGURANÇA
+====================================================
+
+- Usuário sem permissão não acessa admin
+- Atleta não consegue editar
+
+====================================================
+8) RELATÓRIO FINAL
+====================================================
+
+Listar:
+
+- O que foi testado
+- O que foi corrigido
+- O que ainda precisa ajuste
+
+====================================================
+ENTREGA
+
+Sistema validado,
+sem erros críticos,
+pronto para publicação.
