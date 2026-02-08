@@ -184,13 +184,13 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
                     <Swords className="w-5 h-5 text-primary" /> Fase de Grupos - Sequencia de Jogos
                   </h3>
                   <div className="space-y-2">
-                    {groupSorted.map((m: Match) => {
+                    {groupSorted.map((m: Match, idx: number) => {
                       const t1 = teams?.find((t: Team) => t.id === m.team1Id);
                       const t2 = teams?.find((t: Team) => t.id === m.team2Id);
                       const isFinished = m.status === "finalizado";
                       const isLive = m.status === "em_andamento";
                       return (
-                        <div key={m.id} className={`match-row flex items-center gap-3 p-3 rounded-md border bg-card ${isLive ? "ring-2 ring-red-400 border-red-200 shadow-md" : ""} ${isFinished ? "opacity-70" : ""}`} data-testid={`row-sequence-${m.id}`}>
+                        <div key={m.id} className={`match-row flex items-center gap-3 p-3 rounded-md border ${idx % 2 === 0 ? "bg-card" : "bg-blue-50/60 dark:bg-blue-950/20"} ${isLive ? "ring-2 ring-red-400 border-red-200 shadow-md" : ""} ${isFinished ? "opacity-70" : ""}`} data-testid={`row-sequence-${m.id}`}>
                           <div className="w-10 h-10 rounded-md bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-sm" data-testid={`text-seq-number-${m.id}`}>
                             {m.matchNumber || "---"}
                           </div>
@@ -231,13 +231,13 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
                     <Trophy className="w-5 h-5 text-amber-500" /> Fase Eliminatoria
                   </h3>
                   <div className="space-y-2">
-                    {bracketSorted.map((m: Match) => {
+                    {bracketSorted.map((m: Match, idx: number) => {
                       const t1 = teams?.find((t: Team) => t.id === m.team1Id);
                       const t2 = teams?.find((t: Team) => t.id === m.team2Id);
                       const isFinished = m.status === "finalizado";
                       const isLive = m.status === "em_andamento";
                       return (
-                        <div key={m.id} className={`match-row flex items-center gap-3 p-3 rounded-md border bg-card ${isLive ? "ring-2 ring-red-400 border-red-200 shadow-md" : ""} ${isFinished ? "opacity-70" : ""}`} data-testid={`row-sequence-${m.id}`}>
+                        <div key={m.id} className={`match-row flex items-center gap-3 p-3 rounded-md border ${idx % 2 === 0 ? "bg-card" : "bg-blue-50/60 dark:bg-blue-950/20"} ${isLive ? "ring-2 ring-red-400 border-red-200 shadow-md" : ""} ${isFinished ? "opacity-70" : ""}`} data-testid={`row-sequence-${m.id}`}>
                           <div className="w-10 h-10 rounded-md bg-amber-500 text-white flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-sm">
                             {m.matchNumber || "---"}
                           </div>

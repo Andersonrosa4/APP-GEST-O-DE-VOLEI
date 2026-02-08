@@ -886,7 +886,7 @@ function CategoryMatchesManager({ categoryId }: { categoryId: number }) {
 
       {viewMode === "sequencia" && allSorted.length > 0 && (
         <div className="space-y-2">
-          {allSorted.map((m: Match) => {
+          {allSorted.map((m: Match, idx: number) => {
             const t1 = teams?.find((t: Team) => t.id === m.team1Id);
             const t2 = teams?.find((t: Team) => t.id === m.team2Id);
             const isFinished = m.status === "finalizado";
@@ -896,7 +896,7 @@ function CategoryMatchesManager({ categoryId }: { categoryId: number }) {
             return (
               <div
                 key={m.id}
-                className={`flex items-center gap-3 p-3 rounded-md border bg-card cursor-pointer ${isLive ? "ring-2 ring-red-400 border-red-200" : ""} ${isFinished ? "opacity-70" : ""}`}
+                className={`flex items-center gap-3 p-3 rounded-md border cursor-pointer ${idx % 2 === 0 ? "bg-card" : "bg-blue-50/60 dark:bg-blue-950/20"} ${isLive ? "ring-2 ring-red-400 border-red-200" : ""} ${isFinished ? "opacity-70" : ""}`}
                 onClick={() => { setEditingMatch(m); setScoreOpen(true); }}
                 data-testid={`row-admin-seq-${m.id}`}
               >
@@ -1388,7 +1388,7 @@ function CategorySequenceView({ categoryId }: { categoryId: number }) {
       {allSorted.length > 0 && (
         <div className="space-y-2">
           <h3 className="font-bold text-base mb-3">Todos os Jogos</h3>
-          {allSorted.map((m: Match) => {
+          {allSorted.map((m: Match, idx: number) => {
             const t1 = teams?.find((t: Team) => t.id === m.team1Id);
             const t2 = teams?.find((t: Team) => t.id === m.team2Id);
             const isFinished = m.status === "finalizado";
@@ -1399,10 +1399,10 @@ function CategorySequenceView({ categoryId }: { categoryId: number }) {
               <div
                 key={m.id}
                 className={cn(
-                  "flex items-center gap-3 p-3 rounded-md border bg-card cursor-pointer",
+                  "flex items-center gap-3 p-3 rounded-md border cursor-pointer",
+                  isNext && !isLive ? "border-primary/50 bg-primary/5" : idx % 2 === 0 ? "bg-card" : "bg-blue-50/60 dark:bg-blue-950/20",
                   isLive && "ring-2 ring-red-400 border-red-200",
                   isFinished && "opacity-70",
-                  isNext && !isLive && "border-primary/50 bg-primary/5",
                 )}
                 onClick={() => { setEditingMatch(m); setScoreOpen(true); }}
                 data-testid={`row-seq-${m.id}`}
