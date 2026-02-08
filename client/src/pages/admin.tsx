@@ -1,5 +1,6 @@
 import { useAuth } from "@/hooks/use-auth";
 import { Link, Route, Switch, useRoute, useLocation } from "wouter";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { LayoutShell } from "@/components/layout-shell";
 import {
@@ -21,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { MatchCard } from "@/components/match-card";
+import { BracketTree } from "@/components/bracket-tree";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Match, Team } from "@shared/schema";
 
@@ -328,11 +330,12 @@ function AdminTournamentDetail() {
       </div>
 
       <Tabs defaultValue="categorias">
-        <TabsList className="mb-6">
+        <TabsList className="mb-6 flex-wrap">
           <TabsTrigger value="categorias" data-testid="tab-categories">Categorias</TabsTrigger>
           <TabsTrigger value="duplas" data-testid="tab-teams">Duplas & Chaves</TabsTrigger>
           <TabsTrigger value="jogos" data-testid="tab-matches">Jogos & Placar</TabsTrigger>
-          <TabsTrigger value="codigos" data-testid="tab-codes">Códigos de Acesso</TabsTrigger>
+          <TabsTrigger value="sequencia" data-testid="tab-sequence">Sequencia de Jogos</TabsTrigger>
+          <TabsTrigger value="codigos" data-testid="tab-codes">Codigos de Acesso</TabsTrigger>
         </TabsList>
 
         <TabsContent value="categorias">
@@ -356,6 +359,15 @@ function AdminTournamentDetail() {
 
         <TabsContent value="jogos">
           <MatchesTab
+            tournamentId={tournamentId}
+            categories={categories}
+            selectedCategoryId={activeCategoryId}
+            onSelectCategory={setSelectedCategoryId}
+          />
+        </TabsContent>
+
+        <TabsContent value="sequencia">
+          <SequenceTab
             tournamentId={tournamentId}
             categories={categories}
             selectedCategoryId={activeCategoryId}
@@ -561,7 +573,7 @@ function CategoryTeamsAndGroups({ categoryId, tournamentId }: { categoryId: numb
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            Cria duplas numeradas automaticamente (Dupla 1, Dupla 2, ...).
+            Cria duplas numeradas automaticamente.
           </p>
         </CardContent>
       </Card>
@@ -899,6 +911,14 @@ function CategoryMatchesManager({ categoryId }: { categoryId: number }) {
         </div>
       )}
 
+      {bracketMatches.length > 0 && (
+        <BracketTree
+          matches={matches || []}
+          teams={teams || []}
+          onMatchClick={(m) => { setEditingMatch(m); setScoreOpen(true); }}
+        />
+      )}
+
       <Dialog open={scoreOpen} onOpenChange={setScoreOpen}>
         <DialogContent className="sm:max-w-[450px]">
           <DialogHeader><DialogTitle>Atualizar Placar</DialogTitle></DialogHeader>
@@ -966,12 +986,10 @@ function ScoreEditor({ match, team1, team2, onSave }: { match: Match; team1?: Te
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 text-center">
         <div className="p-3 bg-muted/50 rounded-md">
-          <div className="text-xs text-muted-foreground mb-1">Dupla 1</div>
           <div className="font-bold text-sm truncate" data-testid="text-score-team1">{team1?.name || "A definir"}</div>
           <div className="text-2xl font-bold mt-1 text-primary">{t1SetsWon}</div>
         </div>
         <div className="p-3 bg-muted/50 rounded-md">
-          <div className="text-xs text-muted-foreground mb-1">Dupla 2</div>
           <div className="font-bold text-sm truncate" data-testid="text-score-team2">{team2?.name || "A definir"}</div>
           <div className="text-2xl font-bold mt-1 text-primary">{t2SetsWon}</div>
         </div>
@@ -1093,9 +1111,206 @@ function AthleteCodesTab({ tournamentId, open, setOpen }: any) {
               </CardContent>
             </Card>
           ))}
-          {(!codes || (codes as any[]).length === 0) && <p className="col-span-full text-center text-muted-foreground py-8">Nenhum código gerado.</p>}
+          {(!codes || (codes as any[]).length === 0) && <p className="col-span-full text-center text-muted-foreground py-8">Nenhum codigo gerado.</p>}
         </div>
       )}
+    </div>
+  );
+}
+
+function SequenceTab({ tournamentId, categories, selectedCategoryId, onSelectCategory }: any) {
+  if (!categories || categories.length === 0) {
+    return <p className="text-center text-muted-foreground py-8">Crie uma categoria primeiro.</p>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h2 className="text-lg font-bold">Sequencia de Jogos</h2>
+        <div className="w-[200px]">
+          <Select value={selectedCategoryId?.toString()} onValueChange={(v) => onSelectCategory(Number(v))}>
+            <SelectTrigger data-testid="select-sequence-category"><SelectValue placeholder="Selecionar categoria" /></SelectTrigger>
+            <SelectContent>
+              {categories?.map((cat: any) => (
+                <SelectItem key={cat.id} value={cat.id.toString()}>{cat.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {selectedCategoryId && (
+        <CategorySequenceView categoryId={selectedCategoryId} />
+      )}
+    </div>
+  );
+}
+
+function CategorySequenceView({ categoryId }: { categoryId: number }) {
+  const { data: teams, isLoading: loadingTeams } = useTeams(categoryId);
+  const { data: matches, isLoading: loadingMatches } = useMatches(categoryId);
+  const updateMatch = useUpdateMatch();
+  useLiveMatchUpdates(categoryId);
+
+  const [scoreOpen, setScoreOpen] = useState(false);
+  const [editingMatch, setEditingMatch] = useState<Match | null>(null);
+
+  if (loadingTeams || loadingMatches) return <div className="py-12 flex justify-center"><Loader2 className="animate-spin" /></div>;
+
+  const allSorted = [...(matches || [])].sort((a: Match, b: Match) => (a.matchNumber || 999) - (b.matchNumber || 999) || a.id - b.id);
+  const groupSorted = allSorted.filter((m: Match) => m.stage === "grupo");
+  const bracketSorted = allSorted.filter((m: Match) => m.stage !== "grupo");
+
+  const nextMatch = allSorted.find((m: Match) => m.status === "agendado");
+  const liveMatches = allSorted.filter((m: Match) => m.status === "em_andamento");
+
+  const stageLabel: Record<string, string> = { quartas: "QF", semifinal: "SF", final: "Final", terceiro: "3o" };
+
+  return (
+    <div className="space-y-6">
+      {liveMatches.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+            <h3 className="font-bold text-lg">Ao Vivo</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {liveMatches.map((m: Match) => {
+              const t1 = teams?.find((t: Team) => t.id === m.team1Id);
+              const t2 = teams?.find((t: Team) => t.id === m.team2Id);
+              return (
+                <div key={m.id} className="cursor-pointer" onClick={() => { setEditingMatch(m); setScoreOpen(true); }}>
+                  <MatchCard match={m} team1={t1} team2={t2} />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {nextMatch && !liveMatches.length && (
+        <Card className="border-primary/30">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Swords className="w-4 h-4 text-primary" />
+              <span className="text-sm font-bold text-primary">Proximo Jogo</span>
+            </div>
+            <div
+              className="flex items-center gap-3 p-3 rounded-md border bg-card cursor-pointer hover-elevate"
+              onClick={() => { setEditingMatch(nextMatch); setScoreOpen(true); }}
+            >
+              <div className={`w-10 h-10 rounded-md flex items-center justify-center font-bold text-sm flex-shrink-0 ${nextMatch.stage !== "grupo" ? "bg-amber-500 text-white" : "bg-primary text-primary-foreground"}`}>
+                {nextMatch.matchNumber || "—"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-sm">{teams?.find((t: Team) => t.id === nextMatch.team1Id)?.name || "A definir"}</span>
+                  <span className="text-muted-foreground text-xs">vs</span>
+                  <span className="font-semibold text-sm">{teams?.find((t: Team) => t.id === nextMatch.team2Id)?.name || "A definir"}</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
+                  {nextMatch.groupName && <span className="text-primary font-medium">{nextMatch.groupName}</span>}
+                  {nextMatch.stage !== "grupo" && <span className="text-amber-600 font-medium">{stageLabel[nextMatch.stage] || nextMatch.stage}</span>}
+                  <span>Quadra {nextMatch.courtNumber}</span>
+                </div>
+              </div>
+              <Badge variant="outline" className="text-xs">Agendado</Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {allSorted.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="font-bold text-base mb-3">Todos os Jogos</h3>
+          {allSorted.map((m: Match) => {
+            const t1 = teams?.find((t: Team) => t.id === m.team1Id);
+            const t2 = teams?.find((t: Team) => t.id === m.team2Id);
+            const isFinished = m.status === "finalizado";
+            const isLive = m.status === "em_andamento";
+            const isBracket = m.stage !== "grupo";
+            const isNext = m.id === nextMatch?.id;
+            return (
+              <div
+                key={m.id}
+                className={cn(
+                  "flex items-center gap-3 p-3 rounded-md border bg-card cursor-pointer",
+                  isLive && "ring-2 ring-red-400 border-red-200",
+                  isFinished && "opacity-70",
+                  isNext && !isLive && "border-primary/50 bg-primary/5",
+                )}
+                onClick={() => { setEditingMatch(m); setScoreOpen(true); }}
+                data-testid={`row-seq-${m.id}`}
+              >
+                <div className={`w-10 h-10 rounded-md flex items-center justify-center font-bold text-sm flex-shrink-0 ${isBracket ? "bg-amber-500 text-white" : "bg-primary text-primary-foreground"}`}>
+                  {m.matchNumber || "—"}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-sm truncate">{t1?.name || "A definir"}</span>
+                    <span className="text-muted-foreground text-xs">vs</span>
+                    <span className="font-semibold text-sm truncate">{t2?.name || "A definir"}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
+                    {m.groupName && <span className="text-primary font-medium">{m.groupName}</span>}
+                    {isBracket && <span className="text-amber-600 font-medium">{stageLabel[m.stage] || m.stage}</span>}
+                    <span>Q{m.courtNumber}</span>
+                    {m.roundNumber && <span>R{m.roundNumber}</span>}
+                    {m.stage && <span>{m.stage === "grupo" ? "Fase de Grupos" : stageLabel[m.stage] || m.stage}</span>}
+                  </div>
+                </div>
+                <div className="flex-shrink-0 text-right">
+                  {isLive && <Badge variant="destructive" className="animate-pulse">AO VIVO</Badge>}
+                  {isFinished && (
+                    <div className="text-xs font-mono font-bold">
+                      {m.set1Team1}-{m.set1Team2} / {m.set2Team1}-{m.set2Team2}
+                      {((m.set3Team1 || 0) > 0 || (m.set3Team2 || 0) > 0) && <> / {m.set3Team1}-{m.set3Team2}</>}
+                    </div>
+                  )}
+                  {!isLive && !isFinished && (
+                    <Badge variant="outline" className="text-xs">{isNext ? "Proximo" : "Agendado"}</Badge>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {bracketSorted.length > 0 && (
+        <BracketTree
+          matches={matches || []}
+          teams={teams || []}
+          onMatchClick={(m) => { setEditingMatch(m); setScoreOpen(true); }}
+        />
+      )}
+
+      {allSorted.length === 0 && (
+        <Card>
+          <CardContent className="p-12 text-center text-muted-foreground">
+            <Swords className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
+            <p>Nenhum jogo gerado ainda.</p>
+            <p className="text-xs mt-1">Vá para a aba "Jogos & Placar" para gerar as partidas.</p>
+          </CardContent>
+        </Card>
+      )}
+
+      <Dialog open={scoreOpen} onOpenChange={setScoreOpen}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader><DialogTitle>Atualizar Placar</DialogTitle></DialogHeader>
+          {editingMatch && (
+            <ScoreEditor
+              match={editingMatch}
+              team1={teams?.find((t: Team) => t.id === editingMatch.team1Id)}
+              team2={teams?.find((t: Team) => t.id === editingMatch.team2Id)}
+              onSave={(updates) => {
+                updateMatch.mutate({ id: editingMatch.id, ...updates });
+                setScoreOpen(false);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

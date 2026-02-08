@@ -5,6 +5,7 @@ import { LayoutShell } from "@/components/layout-shell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MatchCard } from "@/components/match-card";
+import { BracketTree } from "@/components/bracket-tree";
 import { Loader2, Calendar, MapPin, Users, Trophy, Swords, BarChart3, Clock, ListOrdered } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -141,7 +142,7 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
     <Tabs defaultValue="sequencia">
       <TabsList className="mb-6 flex-wrap">
         <TabsTrigger value="sequencia" data-testid="tab-public-sequence">
-          <ListOrdered className="w-4 h-4 mr-1.5" /> Ordem dos Jogos
+          <ListOrdered className="w-4 h-4 mr-1.5" /> Sequencia de Jogos
         </TabsTrigger>
         <TabsTrigger value="jogos" data-testid="tab-public-matches">
           <Swords className="w-4 h-4 mr-1.5" /> Por Rodada
@@ -266,6 +267,10 @@ function CategoryPublicView({ categoryId }: { categoryId: number }) {
                     })}
                   </div>
                 </div>
+              )}
+
+              {bracketSorted.length > 0 && (
+                <BracketTree matches={matches || []} teams={teams || []} />
               )}
 
               {(matches || []).length === 0 && (
